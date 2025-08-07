@@ -9,4 +9,18 @@ This guide is for developers who are on new architecture and want to create a cu
 
 # Overview
 
-In the old architecture of React Native, you would have used [Native Modules](https://reactnative.dev/docs/legacy/native-modules-intro) & Native Components to access native functionality. However, in the new architecture, you will use the [Turbo Modules](https://reactnative.dev/docs/turbo-modules) and [Fabric Native Components](https://reactnative.dev/docs/fabric) to create your own wrapper.
+In the old architecture of React Native, you would have used [Native Modules](https://reactnative.dev/docs/legacy/native-modules-intro) & Native Components to access native functionality. However, in the new architecture, you will use the [Turbo Modules](https://reactnative.dev/docs/turbo-modules) and [Fabric Native Components](https://reactnative.dev/docs/fabric) to create your own wrapper. Turbo Modules are optimized  for native module management and Fabric allows for a faster and flexible rendering of native components.
+
+
+# Android
+// Add smileid sdk to your project - 
+    // explain about kotlin versions and forcing it to use the react native kotlin version
+    // compose setup
+// Create a view
+// Create a View Manager
+// Add viewmanager to the package
+// create a js view for your view for code gen
+// configure code gen
+
+
+# iOS

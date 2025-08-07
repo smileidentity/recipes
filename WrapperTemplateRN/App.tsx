@@ -1,131 +1,96 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
 import React from 'react';
-import type {PropsWithChildren} from 'react';
 import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
   Text,
   useColorScheme,
-  View,
+  ScrollView,
+  StyleSheet,
+  Pressable,
 } from 'react-native';
+import {NavigationContainer} from '@react-navigation/native';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import {
   Colors,
-  DebugInstructions,
   Header,
-  LearnMoreLinks,
-  ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+import DocumentVerificationScreen from './DocumentVerificationScreen';
 
-function Section({children, title}: SectionProps): React.JSX.Element {
+type RootStackParamList = {
+  Home: undefined;
+  DocumentVerification: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function Card({children, onPress}: React.PropsWithChildren<{onPress: () => void}>) {
   const isDarkMode = useColorScheme() === 'dark';
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+          borderColor: isDarkMode ? Colors.light : Colors.dark,
+        },
+      ]}>
+      {children}
+    </Pressable>
   );
 }
 
-function App(): React.JSX.Element {
+function HomeScreen({navigation}: {navigation: any}) {
   const isDarkMode = useColorScheme() === 'dark';
-
   const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+    backgroundColor: isDarkMode ? Colors.black : Colors.white,
   };
 
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the reccomendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
-
   return (
-    <View style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
-        </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </View>
+    <ScrollView style={[backgroundStyle, {padding: '5%'}]}>
+      <Header />
+      <Card onPress={() => navigation.navigate('DocumentVerification')}>
+        <Text style={styles.cardTitle}>Verify Documents</Text>
+        <Text style={styles.cardContent}>Tap to open DocumentVerificationView</Text>
+      </Card>
+      <Card onPress={() => navigation.navigate('DocumentVerification')}>
+        <Text style={styles.cardTitle}>Another Card</Text>
+        <Text style={styles.cardContent}>Also opens DocumentVerificationView</Text>
+      </Card>
+    </ScrollView>
+  );
+}
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="DocumentVerification" component={DocumentVerificationScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  card: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 4,
+    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
+  cardTitle: {
     fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  cardContent: {
+    fontSize: 14,
     fontWeight: '400',
   },
-  highlight: {
-    fontWeight: '700',
-  },
 });
-
-export default App;
