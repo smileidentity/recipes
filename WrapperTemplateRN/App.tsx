@@ -8,7 +8,7 @@ import {
     Pressable,
 } from 'react-native';
 
-import DocumentVerificationView  from './specs/DcoumentVerificationNativeComponent.ts';
+import DocumentVerificationView  from './specs/DocumentVerificationNativeComponent.ts';
 
 function Card({
                   children,
