@@ -1,7 +1,7 @@
 import SwiftUI
 import SmileID
 
-struct DocumentVerificationView: View, DocumentVerificationResultDelegate {
+struct DocumentVerificationRootView: View, DocumentVerificationResultDelegate {
     var body: some View {
       SmileID.documentVerificationScreen(
         countryCode: "KE",

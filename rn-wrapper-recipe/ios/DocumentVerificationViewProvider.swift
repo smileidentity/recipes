@@ -3,7 +3,7 @@ import React
 import SwiftUI
 
 @objc public class DocumentVerificationViewProvider: UIView {
-  private var hostingController: UIHostingController<DocumentVerificationView>?
+  private var hostingController: UIHostingController<DocumentVerificationRootView>?
   
   public override func layoutSubviews() {
        super.layoutSubviews()
@@ -16,13 +16,14 @@ import SwiftUI
      }
      
      self.hostingController = UIHostingController(
-       rootView: DocumentVerificationView()
+       rootView: DocumentVerificationRootView()
      )
      
      if let hostingController = self.hostingController {
        addSubview(hostingController.view)
        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
        hostingController.view.pinEdges(to: self)
+       hostingController.view.overrideUserInterfaceStyle = .light
        reactAddController(toClosestParent: hostingController)
      }
    }

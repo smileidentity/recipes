@@ -509,6 +509,57 @@ Using a specific react n
 
 ## Troubleshooting
 
+- [Hermes crash: property not configurable / component undefined (iOS)](#ts-hermes)
+- [Module Resolution Error: main could not be resolved](#ts-module-resolve)
+
+<a id="ts-hermes"></a>
+### Hermes crash: `TypeError: property is not configurable` and `Cannot read property 'DocumentVerificationView' of undefined`
+
+Symptoms:
+- App logs show `TypeError: property is not configurable, js engine: hermes`.
+- Followed by `Warning: TypeError: Cannot read property 'DocumentVerificationView' of undefined` when rendering the component in the example app.
+
+Root cause:
+- Re-exporting the same symbols multiple times from the package entry can cause Hermes to attempt redefining already-frozen properties. Using both default exports and `export *` from the same module can trigger this and leave the module object unusable at runtime.
+- A secondary risk is a Swift/ObjC symbol name collision if a SwiftUI struct shares the exact name as the ObjC class used by Fabric.
+
+Fix:
+1) Simplify JS exports to avoid star re-exports
+   - In `rn-wrapper-recipe/src/index.tsx`, export only named defaults:
+     - Before:
+       - `export { default as RnWrapperRecipeView } from './RnWrapperRecipeViewNativeComponent';`
+       - `export * from './RnWrapperRecipeViewNativeComponent';`
+       - `export { default as DocumentVerificationView } from './DocumentVerificationViewNativeComponent';`
+       - `export * from './DocumentVerificationViewNativeComponent';`
+     - After:
+       - `export { default as RnWrapperRecipeView } from './RnWrapperRecipeViewNativeComponent';`
+       - `export { default as DocumentVerificationView } from './DocumentVerificationViewNativeComponent';`
+
+   - Ensure the built output mirrors this. In `rn-wrapper-recipe/lib/module/index.js` remove star re-exports as well and keep only the two named default exports.
+
+2) Avoid Swift/ObjC name collision (optional but recommended)
+   - If you have a SwiftUI type named `DocumentVerificationView`, rename it to something like `DocumentVerificationRootView` and update the provider to reference the new name:
+     - `DocumentVerificationViewProvider.swift` should initialize `UIHostingController(rootView: DocumentVerificationRootView())`.
+   - Keep the ObjC class `DocumentVerificationView : RCTViewComponentView` unchanged to match the codegen component name.
+
+3) Clean rebuild to refresh caches and generated files
+   - From the repo root:
+     - `yarn install`
+     - `yarn prepare` (runs bob build to produce `lib/`)
+   - Restart Metro with a clean cache from the example app:
+     - `cd rn-wrapper-recipe/example && yarn start --reset-cache`
+   - Reinstall iOS pods to rerun codegen and integrate generated providers:
+     - `cd rn-wrapper-recipe/example/ios && rm -rf Pods Podfile.lock build && pod install`
+   - Build and run iOS:
+     - `cd .. && yarn ios`
+
+Verification:
+- The example app should render `<DocumentVerificationView />` without module errors.
+- Generated file `build/generated/ios/RCTThirdPartyComponentsProvider.mm` should include:
+  - `@"DocumentVerificationView": NSClassFromString(@"DocumentVerificationView")`
+
+
+<a id="ts-module-resolve"></a>
 ### Module Resolution Error: "Could not be resolved"
 
 If you encounter an error similar to:
