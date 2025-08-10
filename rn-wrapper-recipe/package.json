@@ -150,15 +150,17 @@
   },
   "codegenConfig": {
     "name": "RnWrapperRecipeViewSpec",
-    "type": "all",
+    "type": "components",
     "jsSrcsDir": "src",
     "android": {
       "javaPackageName": "com.rnwrapperrecipe"
     },
     "ios": {
       "componentProvider": {
-        "RnWrapperRecipeView": "RnWrapperRecipeView"
-      }
+        "RnWrapperRecipeView": "RnWrapperRecipeView",
+        "DocumentVerificationView": "DocumentVerificationView"
+      },
+      "includesGeneratedCode": true
     }
   },
   "create-react-native-library": {

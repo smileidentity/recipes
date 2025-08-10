@@ -1,23 +1,150 @@
-import { View, StyleSheet } from 'react-native';
-import { RnWrapperRecipeView } from 'react-native-rn-wrapper-recipe';
+import {
+  View,
+  StyleSheet,
+  SafeAreaView,
+  StatusBar,
+  Animated,
+  Text,
+  Pressable,
+} from 'react-native';
+import {
+  DocumentVerificationView,
+  RnWrapperRecipeView,
+} from 'react-native-rn-wrapper-recipe';
+import { useState } from 'react';
+import ScrollView = Animated.ScrollView;
 
-export default function App() {
+function Header({ title, onBack }: { title: string; onBack?: () => void }) {
   return (
-    <View style={styles.container}>
-      <RnWrapperRecipeView color="#32a852" style={styles.box} />
+    <View style={styles.headerContainer}>
+      {onBack ? (
+        <Pressable onPress={onBack} style={styles.headerButton}>
+          <Text style={styles.headerButtonText}>←</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.headerButton} />
+      )}
+      <Text style={styles.headerTitle}>{title}</Text>
+      <View style={styles.headerButton} />
     </View>
+  );
+}
+
+function Card({
+  children,
+  onPress,
+}: React.PropsWithChildren<{ onPress: () => void }>) {
+  return (
+    <Pressable onPress={onPress} style={styles.card}>
+      {children}
+    </Pressable>
+  );
+}
+
+export default function App(): React.JSX.Element {
+  const [currentScreen, setCurrentScreen] = useState<
+    'home' | 'document' | 'another'
+  >('home');
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+
+      {currentScreen === 'home' && (
+        <>
+          <Header title="Smile ID Demos" />
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <Card onPress={() => setCurrentScreen('document')}>
+              <Text style={styles.cardTitle}>Document Verification</Text>
+              <Text style={styles.cardContent}>Tap to start verification</Text>
+            </Card>
+            <Card onPress={() => setCurrentScreen('another')}>
+              <Text style={styles.cardTitle}>Another Flow</Text>
+              <Text style={styles.cardContent}>Also opens native view</Text>
+            </Card>
+          </ScrollView>
+        </>
+      )}
+
+      {currentScreen === 'document' && (
+        <>
+          <Header
+            title="Document Verification"
+            onBack={() => setCurrentScreen('home')}
+          />
+          <DocumentVerificationView style={styles.nativeView} />
+        </>
+      )}
+
+      {currentScreen === 'another' && (
+        <>
+          <Header
+            title="Another Flow"
+            onBack={() => setCurrentScreen('home')}
+          />
+          <RnWrapperRecipeView color="#ff6347" style={styles.nativeView} />
+        </>
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: '#ffffff',
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  box: {
-    width: 60,
-    height: 60,
-    marginVertical: 20,
+  headerContainer: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ccc',
+  },
+  headerButton: {
+    padding: 8,
+    width: 40,
+    alignItems: 'flex-start',
+  },
+  headerButtonText: {
+    fontSize: 20,
+    color: '#007AFF',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
+  },
+  scrollContainer: {
+    padding: 20,
+  },
+  card: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 16,
+    backgroundColor: '#f9f9f9',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  cardContent: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  nativeView: {
+    flex: 1,
   },
 });
