@@ -12,8 +12,9 @@ import {
   SmartSelfieAuthenticationView,
   SmartSelfieEnrollmentView,
   RnWrapperRecipeView,
+  initialize,
 } from 'react-native-rn-wrapper-recipe';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ScrollView = Animated.ScrollView;
 
 function Header({ title, onBack }: { title: string; onBack?: () => void }) {
@@ -51,6 +52,28 @@ export default function App(): React.JSX.Element {
     | 'smartSelfieAuthentication'
     | 'another'
   >('home');
+
+  // Initialize the SmileID SDK once at app start
+  useEffect(() => {
+    const setupSmileID = async () => {
+      try {
+        const config = {
+          partner_id: 'YOUR_PARTNER_ID',
+          auth_token: 'YOUR_AUTH_TOKEN',
+          prod_lambda_url: 'https://your-prod-lambda-url',
+          test_lambda_url: 'https://your-test-lambda-url',
+        };
+        // initialize(useSandbox, enableCrashReporting, config, apiKey?)
+        await initialize(false, true, config);
+        console.log('[SmileID] SDK initialized');
+        // Optionally set a callback URL if needed:
+        // await setCallbackUrl('https://your.server/callback');
+      } catch (error) {
+        console.error('[SmileID] Setup failed:', error);
+      }
+    };
+    setupSmileID();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,7 +156,10 @@ export default function App(): React.JSX.Element {
                 const payload = JSON.parse(e.nativeEvent.result);
                 console.log('SmartSelfieEnroll success:', payload);
               } catch (err) {
-                console.warn('SmartSelfieEnroll success (non-JSON):', e.nativeEvent.result);
+                console.warn(
+                  'SmartSelfieEnroll success (non-JSON):',
+                  e.nativeEvent.result
+                );
               }
               setCurrentScreen('home');
             }}
@@ -158,7 +184,10 @@ export default function App(): React.JSX.Element {
                 const payload = JSON.parse(e.nativeEvent.result);
                 console.log('SmartSelfieAuth success:', payload);
               } catch (err) {
-                console.warn('SmartSelfieAuth success (non-JSON):', e.nativeEvent.result);
+                console.warn(
+                  'SmartSelfieAuth success (non-JSON):',
+                  e.nativeEvent.result
+                );
               }
               setCurrentScreen('home');
             }}
