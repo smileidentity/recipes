@@ -7,6 +7,7 @@
 
 #import <React/RCTViewComponentView.h>
 #import <UIKit/UIKit.h>
+#import <SwiftUI/SwiftUI.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
