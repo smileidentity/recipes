@@ -1,4 +1,4 @@
-package com.wrappertemplatern.views
+package com.rnwrapperrecipe
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,15 +10,15 @@ import com.smileidentity.SmileID
 import com.smileidentity.compose.DocumentVerification
 
 @Composable
-fun DocumentVerificationViewContent() {
-    Column (
-        modifier = Modifier
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        SmileID.DocumentVerification(
-            countryCode = "KE"
-        )
-    }
+fun DocumentVerificationRootView() {
+  Column (
+    modifier = Modifier
+      .fillMaxSize(),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.Center
+  ) {
+    SmileID.DocumentVerification(
+      countryCode = "KE"
+    )
+  }
 }

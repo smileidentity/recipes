@@ -10,6 +10,7 @@ class RnWrapperRecipeViewPackage : ReactPackage {
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
     val viewManagers: MutableList<ViewManager<*, *>> = ArrayList()
     viewManagers.add(RnWrapperRecipeViewManager())
+    viewManagers.add(DocumentVerificationViewManager())
     return viewManagers
   }
 
