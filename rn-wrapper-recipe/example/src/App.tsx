@@ -10,6 +10,7 @@ import {
 import {
   DocumentVerificationView,
   SmartSelfieAuthenticationView,
+  SmartSelfieEnrollmentView,
   RnWrapperRecipeView,
 } from 'react-native-rn-wrapper-recipe';
 import { useState } from 'react';
@@ -125,7 +126,22 @@ export default function App(): React.JSX.Element {
             title="Smart Selfie Enrollment"
             onBack={() => setCurrentScreen('home')}
           />
-          <RnWrapperRecipeView color="#ff6347" style={styles.nativeView} />
+          <SmartSelfieEnrollmentView
+            style={styles.nativeView}
+            onSuccess={(e) => {
+              try {
+                const payload = JSON.parse(e.nativeEvent.result);
+                console.log('SmartSelfieEnroll success:', payload);
+              } catch (err) {
+                console.warn('SmartSelfieEnroll success (non-JSON):', e.nativeEvent.result);
+              }
+              setCurrentScreen('home');
+            }}
+            onError={(e) => {
+              console.error('SmartSelfieEnroll error:', e.nativeEvent.error);
+              setCurrentScreen('home');
+            }}
+          />
         </>
       )}
 

@@ -1,10 +1,11 @@
+package com.rnwrapperrecipe
+
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
-import com.facebook.react.uimanager.ViewManagerDelegate;
-import com.facebook.react.viewmanagers.SmartSelfieAuthenticationViewManagerInterface;
-import com.facebook.react.viewmanagers.SmartSelfieAuthenticationViewManagerDelegate;
-import com.rnwrapperrecipe.SmartSelfieAuthenticationView
+import com.facebook.react.uimanager.ViewManagerDelegate
+import com.facebook.react.viewmanagers.SmartSelfieAuthenticationViewManagerInterface
+import com.facebook.react.viewmanagers.SmartSelfieAuthenticationViewManagerDelegate
 
 @ReactModule(name = SmartSelfieAuthenticationViewManager.REACT_CLASS)
 class SmartSelfieAuthenticationViewManager: SimpleViewManager<SmartSelfieAuthenticationView>(),

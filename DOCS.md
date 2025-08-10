@@ -728,16 +728,17 @@ import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNati
 import type { ViewProps } from 'react-native';
 import type { DirectEventHandler } from 'react-native/Libraries/Types/CodegenTypes';
 
-export type SmartSelfieAuthSuccessEvent = Readonly<{
-  selfieImageBase64: string;
-  livenessImagesBase64: string[];
-  jobStatusSummary?: string;
-}>;
-export type SmartSelfieAuthErrorEvent = Readonly<{ message: string; code?: string }>; 
+// Keep codegen simple and robust by sending success/error as strings
+// success: result is a JSON string encoding { selfieFile, livenessFiles, apiResponse? }
+export type SmartSelfieAuthSuccessEvent = Readonly<{ result: string }>;
+// error: plain message, or a JSON string if you need more fields later
+export type SmartSelfieAuthErrorEvent = Readonly<{ error: string }>;
+
 interface NativeProps extends ViewProps {
   onSuccess?: DirectEventHandler<SmartSelfieAuthSuccessEvent>;
   onError?: DirectEventHandler<SmartSelfieAuthErrorEvent>;
 }
+
 export default codegenNativeComponent<NativeProps>('SmartSelfieAuthenticationView');
 ```
 
@@ -765,9 +766,22 @@ export { default as SmartSelfieAuthenticationView } from './SmartSelfieAuthentic
 ```swift
 // ios/SmartSelfieAuthenticationViewProvider.swift
 @objc public class SmartSelfieAuthenticationViewProvider: UIView {
-  @objc public var onSuccess: ((NSDictionary) -> Void)?
-  @objc public var onError: ((NSString, NSString?) -> Void)?
-  // Create UIHostingController with SmartSelfieAuthenticationRootView that calls onSuccess/onError
+  // Emit single-string payloads to match codegen types
+  @objc public var onSuccess: ((NSString) -> Void)?
+  @objc public var onError: ((NSString) -> Void)?
+
+  private var hostingController: UIHostingController<SmartSelfieAuthenticationRootView>?
+
+  private func setupView() {
+    if hostingController != nil { return }
+    hostingController = UIHostingController(
+      rootView: SmartSelfieAuthenticationRootView(
+        onSuccess: { [weak self] json in self?.onSuccess?(json) },
+        onError: { [weak self] json in self?.onError?(json) }
+      )
+    )
+    // ... add as child and pin edges ...
+  }
 }
 ```
 
@@ -775,20 +789,67 @@ Also add the SwiftUI root view:
 ```swift
 // ios/SmartSelfieAuthenticationView.swift
 struct SmartSelfieAuthenticationRootView: View, SmartSelfieResultDelegate {
-  let onSuccess: (NSDictionary) -> Void
-  let onError: (String, String?) -> Void
+  let onSuccess: (NSString) -> Void
+  let onError: (NSString) -> Void
   var body: some View {
     SmileID.smartSelfieAuthenticationScreen(userId: "userID", delegate: self)
   }
-  // Map delegate outputs to onSuccess/onError
+  // Build a JSON result and pass it as a string
+  func didSucceed(
+    selfieImage: Data,
+    livenessImages: [Data],
+    jobStatusResponse: SmartSelfieJobStatusResponse
+  ) {
+    var params: [String: Any] = [
+      "selfieFile": selfieImage.base64EncodedString(),
+      "livenessFiles": livenessImages.map { $0.base64EncodedString() },
+    ]
+    let api: [String: Any] = [
+      "code": jobStatusResponse.code as Any,
+      "created_at": jobStatusResponse.createdAt as Any,
+      "job_id": jobStatusResponse.jobId as Any,
+      "job_type": jobStatusResponse.jobType as Any,
+      "message": jobStatusResponse.message as Any,
+      "partner_id": jobStatusResponse.partnerId as Any,
+      "partner_params": jobStatusResponse.partnerParams as Any,
+      "status": jobStatusResponse.status as Any,
+      "updated_at": jobStatusResponse.updatedAt as Any,
+      "user_id": jobStatusResponse.userId as Any,
+    ]
+    params["apiResponse"] = api
+    guard let data = try? JSONSerialization.data(withJSONObject: params),
+          let json = String(data: data, encoding: .utf8) else {
+      onError("SmartSelfie JSON encoding error")
+      return
+    }
+    onSuccess(json as NSString)
+  }
+
+  func didError(error: Error) { onError(error.localizedDescription as NSString) }
 }
 ```
 
 5) iOS component view (ObjC++)
 ```objc
 // ios/SmartSelfieAuthenticationView.mm
-// Similar to DocumentVerificationView.mm, set provider.onSuccess/.onError
-// and emit SmartSelfieAuthenticationViewEventEmitter events
+// Wire provider callbacks to Fabric emitter with string payloads
+__weak SmartSelfieAuthenticationView *weakSelf = self;
+_provider.onSuccess = ^(NSString *json) {
+  SmartSelfieAuthenticationView *strongSelf = weakSelf; if (!strongSelf) return;
+  auto emitter = std::static_pointer_cast<const SmartSelfieAuthenticationViewEventEmitter>(strongSelf->_eventEmitter);
+  if (!emitter) return;
+  SmartSelfieAuthenticationViewEventEmitter::OnSuccess ev{};
+  ev.result = std::string([json UTF8String]);
+  emitter->onSuccess(std::move(ev));
+};
+_provider.onError = ^(NSString *errorString) {
+  SmartSelfieAuthenticationView *strongSelf = weakSelf; if (!strongSelf) return;
+  auto emitter = std::static_pointer_cast<const SmartSelfieAuthenticationViewEventEmitter>(strongSelf->_eventEmitter);
+  if (!emitter) return;
+  SmartSelfieAuthenticationViewEventEmitter::OnError ev{};
+  ev.error = std::string([errorString UTF8String]);
+  emitter->onError(std::move(ev));
+};
 ```
 
 6) JS usage
@@ -796,10 +857,16 @@ struct SmartSelfieAuthenticationRootView: View, SmartSelfieResultDelegate {
 <SmartSelfieAuthenticationView
   style={{ flex: 1 }}
   onSuccess={(e) => {
-    const { selfieImageBase64, livenessImagesBase64, jobStatusSummary } = e.nativeEvent;
+    try {
+      const payload = JSON.parse(e.nativeEvent.result);
+      // { selfieFile: string, livenessFiles: string[], apiResponse?: {...} }
+    } catch {
+      // fallback if it isn't JSON
+      console.log('Success:', e.nativeEvent.result);
+    }
   }}
   onError={(e) => {
-    const { message, code } = e.nativeEvent;
+    console.error('Error:', e.nativeEvent.error);
   }}
 /> 
 ```
@@ -809,3 +876,6 @@ Build & verify
 - `yarn start --reset-cache`
 - `cd example/ios && rm -rf Pods Podfile.lock build && pod install`
 - `yarn ios`
+
+Why strings?
+- Flattening events to strings avoids React Native codegen edge cases with nested optional object types in event payloads, making builds more reliable.

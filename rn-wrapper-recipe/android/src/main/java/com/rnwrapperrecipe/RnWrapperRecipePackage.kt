@@ -1,6 +1,5 @@
 package com.rnwrapperrecipe
 
-import SmartSelfieAuthenticationViewManager
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
@@ -13,6 +12,7 @@ class RnWrapperRecipeViewPackage : ReactPackage {
     viewManagers.add(RnWrapperRecipeViewManager())
     viewManagers.add(DocumentVerificationViewManager())
     viewManagers.add(SmartSelfieAuthenticationViewManager())
+    viewManagers.add(SmartSelfieEnrollmentViewManager())
     return viewManagers
   }
 

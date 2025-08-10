@@ -159,7 +159,8 @@
       "componentProvider": {
         "RnWrapperRecipeView": "RnWrapperRecipeView",
         "DocumentVerificationView": "DocumentVerificationView",
-        "SmartSelfieAuthenticationView": "SmartSelfieAuthenticationView"
+  "SmartSelfieAuthenticationView": "SmartSelfieAuthenticationView",
+  "SmartSelfieEnrollmentView": "SmartSelfieEnrollmentView"
       },
       "includesGeneratedCode": true
     }
