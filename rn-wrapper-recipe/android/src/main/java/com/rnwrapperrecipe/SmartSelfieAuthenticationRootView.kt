@@ -8,10 +8,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.smileidentity.SmileID
 import com.smileidentity.compose.SmartSelfieAuthentication
+import com.smileidentity.results.SmartSelfieResult
 import com.smileidentity.util.randomUserId
 
 @Composable
-fun SmartSelfieAuthenticationRootView() {
+fun SmartSelfieAuthenticationRootView(
+  onResult: (SmartSelfieResult) -> Unit,
+  onError: (Throwable) -> Unit
+) {
   Column (
     modifier = Modifier
       .fillMaxSize(),
@@ -20,6 +24,11 @@ fun SmartSelfieAuthenticationRootView() {
   ) {
     SmileID.SmartSelfieAuthentication(
       userId = randomUserId()
-    )
+    ) { result ->
+        result.handle(
+          onSuccess = onResult,
+          onError = onError
+        )
+      }
   }
 }

@@ -8,9 +8,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.smileidentity.SmileID
 import com.smileidentity.compose.DocumentVerification
+import com.smileidentity.results.DocumentVerificationResult
 
 @Composable
-fun DocumentVerificationRootView() {
+fun DocumentVerificationRootView(
+  onResult: (DocumentVerificationResult) -> Unit,
+  onError: (Throwable) -> Unit
+) {
   Column (
     modifier = Modifier
       .fillMaxSize(),
@@ -18,7 +22,12 @@ fun DocumentVerificationRootView() {
     verticalArrangement = Arrangement.Center
   ) {
     SmileID.DocumentVerification(
-      countryCode = "KE"
-    )
+      countryCode = "KE",
+    ) { result ->
+        result.handle(
+          onSuccess = onResult,
+          onError = onError
+        )
+      }
   }
 }
