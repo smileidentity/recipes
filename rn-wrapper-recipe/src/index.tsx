@@ -2,10 +2,13 @@ export { default as RnWrapperRecipeView } from './RnWrapperRecipeViewNativeCompo
 export { default as DocumentVerificationView } from './DocumentVerificationViewNativeComponent';
 export { default as SmartSelfieAuthenticationView } from './SmartSelfieAuthenticationViewNativeComponent';
 export { default as SmartSelfieEnrollmentView } from './SmartSelfieEnrollmentViewNativeComponent';
+import SmileIDNative from './NativeSmileID';
 export { default as SmileIDNative } from './NativeSmileID';
+
 export const initialize = (
   ...args: Parameters<import('./NativeSmileID').SmileIDModule['initialize']>
-) => import('./NativeSmileID').then((m) => m.default.initialize(...args));
+) => SmileIDNative.initialize(...args);
+
 export const setCallbackUrl = (
   ...args: Parameters<import('./NativeSmileID').SmileIDModule['setCallbackUrl']>
-) => import('./NativeSmileID').then((m) => m.default.setCallbackUrl(...args));
+) => SmileIDNative.setCallbackUrl(...args);

@@ -17,6 +17,8 @@ class RnWrapperRecipeViewPackage : ReactPackage {
   }
 
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-    return emptyList()
+  val modules: MutableList<NativeModule> = ArrayList()
+  modules.add(SmileIDModule(reactContext))
+  return modules
   }
 }

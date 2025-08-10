@@ -982,3 +982,37 @@ If you see header/module import errors, a clean pod install (with New Architectu
 - Wrapper version is read from `SMILE_ID_VERSION` if the compile-time flag is defined; otherwise it defaults to "unknown". This does not affect functionality.
 - `SmileConfig` must be provided in snake_case; it’s JSON‑encoded on the Objective‑C side and decoded into Swift’s `Config`.
 - Invalid or missing `config` simply falls back to the lighter initialization paths described above.
+
+## Android native module: initialize/setCallbackUrl from JS (New Architecture)
+
+Android mirrors the iOS approach with a Kotlin native module exposing `initialize` and `setCallbackUrl` to JS and ensuring calls execute on the UI thread.
+
+### Files involved
+- Native module and registration
+  - `rn-wrapper-recipe/android/src/main/java/com/rnwrapperrecipe/SmileIDModule.kt` — Kotlin module exposing:
+    - `initialize(useSandbox: Boolean, enableCrashReporting: Boolean, config: ReadableMap?, apiKey: String?)`
+    - `setCallbackUrl(url: String?)`
+    Both methods resolve a Promise and run on the main thread via `UiThreadUtil.runOnUiThread { ... }`.
+  - `rn-wrapper-recipe/android/src/main/java/com/rnwrapperrecipe/RnWrapperRecipePackage.kt` — Registers `SmileIDModule` in `createNativeModules`.
+
+### API surface (JS)
+Same as iOS via `src/NativeSmileID.ts`:
+- `initialize(useSandbox: boolean, enableCrashReporting: boolean, config?: SmileConfig, apiKey?: string): Promise<void>`
+- `setCallbackUrl(url?: string): Promise<void>`
+
+### Main-thread handling
+- `initialize(...)` and `setCallbackUrl(...)` are dispatched onto the Android UI thread using `UiThreadUtil.runOnUiThread` to prevent UI access from background threads.
+
+### Fallbacks and current behavior
+- The module keeps the same fallbacks contract as iOS at the JS layer. The Kotlin implementation currently calls the safe baseline `SmileID.initialize(context, useSandbox)` which is sufficient for Compose flows.
+- If you need to pass `apiKey` and/or a richer `Config` on Android as well, extend `SmileIDModule.initialize` to:
+  - Map `ReadableMap` → the SDK’s `Config` (data class)
+  - Prefer `initialize(context, apiKey, config, useSandbox, enableCrashReporting, requestTimeout)` if that overload exists in your SDK version
+- This ensures parity with iOS while keeping the current implementation stable and compatible.
+
+### Does this use TurboModules?
+- Yes, the Kotlin module runs under the New Architecture’s TurboModule runtime via the Java/Kotlin interop path (not a codegen TurboModule). It’s discoverable through autolinking and the React Gradle plugin.
+
+### Build steps (Android)
+- The module is part of the library; autolinking will register the package. Rebuild the Android app after changes to the library.
+- If you run into dependency conflicts (Kotlin or kotlinx-serialization), this template already pins versions in `android/build.gradle` using `resolutionStrategy`.

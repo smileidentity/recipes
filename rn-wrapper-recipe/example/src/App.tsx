@@ -64,7 +64,7 @@ export default function App(): React.JSX.Element {
           test_lambda_url: 'https://your-test-lambda-url',
         };
         // initialize(useSandbox, enableCrashReporting, config, apiKey?)
-        await initialize(false, true, config);
+        await initialize(false, false);
         console.log('[SmileID] SDK initialized');
         // Optionally set a callback URL if needed:
         // await setCallbackUrl('https://your.server/callback');
