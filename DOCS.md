@@ -600,6 +600,8 @@ yarn install
 yarn prepare
 ```
 
+
+
 ## Exposing native callbacks to JS (iOS, Fabric)
 
 ### Understanding the iOS pieces (New Architecture) before you implement
@@ -913,3 +915,70 @@ Notes
 - Event prop names in TS must match those emitted from iOS.
 - Wrap Fabric code with `#if RCT_NEW_ARCH_ENABLED`.
 - Use weak→strong promotion before accessing `_eventEmitter` in blocks.
+
+
+## SmileID native module: initialize/setCallbackUrl from JS (New Architecture)
+
+This section documents how the wrapper exposes SmileID iOS SDK static methods to JavaScript and the threading fix that avoids a Main Thread Checker crash.
+
+### What this adds
+- A tiny native module to call `SmileID.initialize(...)` and `SmileID.setCallbackUrl(...)` from JS.
+- Initialization fallbacks: prefer `apiKey + config` → `config only` → `basic` (sandbox flag only).
+- Main-thread dispatch around SDK calls to avoid UI APIs being touched off the main queue.
+
+### Files involved
+- iOS native module and bridge
+  - `rn-wrapper-recipe/ios/SmileIDModule.h` — RCTBridgeModule interface
+  - `rn-wrapper-recipe/ios/SmileIDModule.mm` — Objective‑C implementation exported as `RCT_EXPORT_MODULE(SmileID)` with two promise methods:
+    - `initialize(useSandbox, enableCrashReporting, config?: NSDictionary, apiKey?: NSString)`
+    - `setCallbackUrl(url?: NSString)`
+  - `rn-wrapper-recipe/ios/SmileIDBridge.swift` — Swift helper that:
+    - Sets wrapper info: `SmileID.setWrapperInfo(name: .reactNative, version: <SMILE_ID_VERSION|unknown>)`
+    - Decodes optional `configJson` into `Config` (snake_case JSON)
+    - Performs initialization fallbacks and ensures calls run on the main thread
+- JS binding
+  - `rn-wrapper-recipe/src/NativeSmileID.ts` — Type-safe wrapper over `NativeModules.SmileID` with `initialize` and `setCallbackUrl` exported for app use
+- Example usage
+  - `rn-wrapper-recipe/example/src/App.tsx` — Calls `initialize(...)` once on startup with a sample config
+
+### API (JS)
+- `initialize(useSandbox: boolean, enableCrashReporting: boolean, config?: SmileConfig, apiKey?: string): Promise<void>`
+  - `SmileConfig` expects snake_case keys matching the iOS `Config.CodingKeys`
+  - Fallbacks inside native:
+    1) If both `apiKey` and `config` are provided → `SmileID.initialize(apiKey:config:useSandbox:enableCrashReporting:requestTimeout:)`
+    2) Else if only `config` is provided → `SmileID.initialize(config:useSandbox:)`
+    3) Else → `SmileID.initialize(useSandbox:)`
+- `setCallbackUrl(url?: string): Promise<void>`
+
+### Main-thread fix (crash prevention)
+Symptoms observed: Main Thread Checker complained about UI API calls (e.g., `-[UIWindow screen]`) when `initialize(...)` was invoked on a background queue (TurboModule thread).
+
+Fix implemented in `SmileIDBridge.swift`:
+- Wrap all calls that may touch UI (or frameworks like Sentry used by SmileID) on the main thread.
+  - `initializeSDK(...)`: executes on the main queue (synchronously) before resolving the JS promise to ensure initialization completes safely.
+  - `setCallbackUrl(...)`: executes on the main queue (asynchronously), which is fine for a setter.
+
+Why synchronous for initialize? It guarantees the Promise only resolves after the SDK is fully initialized, making downstream usage deterministic and avoiding race conditions.
+
+### Does this use TurboModules?
+- Yes, it runs under the New Architecture’s TurboModule manager, but this implementation uses the Objective‑C interop path (no TS codegen spec). You’ll see calls on `com.meta.react.turbomodulemanager.queue` and `ObjCTurboModule` in stack traces.
+- It is not a “codegen TurboModule.” To make it fully codegen-based, add a TypeScript spec for the module, configure CodeGen, and re-implement the module conforming to the generated interface. For most simple bridges, the interop approach is sufficient.
+
+### Build steps (iOS)
+When you add or change native iOS files, reinstall Pods and rebuild:
+
+```sh
+# From the example app (or host app) iOS folder
+cd rn-wrapper-recipe/example/ios
+rm -rf Pods Podfile.lock build
+RCT_NEW_ARCH_ENABLED=1 bundle exec pod install --repo-update
+cd ..
+"$(npm bin)/react-native" run-ios
+```
+
+If you see header/module import errors, a clean pod install (with New Architecture enabled) usually resolves them.
+
+### Notes
+- Wrapper version is read from `SMILE_ID_VERSION` if the compile-time flag is defined; otherwise it defaults to "unknown". This does not affect functionality.
+- `SmileConfig` must be provided in snake_case; it’s JSON‑encoded on the Objective‑C side and decoded into Swift’s `Config`.
+- Invalid or missing `config` simply falls back to the lighter initialization paths described above.
