@@ -158,7 +158,8 @@
     "ios": {
       "componentProvider": {
         "RnWrapperRecipeView": "RnWrapperRecipeView",
-        "DocumentVerificationView": "DocumentVerificationView"
+        "DocumentVerificationView": "DocumentVerificationView",
+        "SmartSelfieAuthenticationView": "SmartSelfieAuthenticationView"
       },
       "includesGeneratedCode": true
     }

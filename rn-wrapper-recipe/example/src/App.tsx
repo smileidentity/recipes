@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {
   DocumentVerificationView,
+  SmartSelfieAuthenticationView,
   RnWrapperRecipeView,
 } from 'react-native-rn-wrapper-recipe';
 import { useState } from 'react';
@@ -43,7 +44,11 @@ function Card({
 
 export default function App(): React.JSX.Element {
   const [currentScreen, setCurrentScreen] = useState<
-    'home' | 'document' | 'another'
+    | 'home'
+    | 'documentVerification'
+    | 'smartSelfieEnrollment'
+    | 'smartSelfieAuthentication'
+    | 'another'
   >('home');
 
   return (
@@ -54,19 +59,31 @@ export default function App(): React.JSX.Element {
         <>
           <Header title="Smile ID Demos" />
           <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <Card onPress={() => setCurrentScreen('document')}>
+            <Card onPress={() => setCurrentScreen('documentVerification')}>
               <Text style={styles.cardTitle}>Document Verification</Text>
               <Text style={styles.cardContent}>Tap to start verification</Text>
             </Card>
+            <Card onPress={() => setCurrentScreen('smartSelfieEnrollment')}>
+              <Text style={styles.cardTitle}>Smart Selfie Enrollment</Text>
+              <Text style={styles.cardContent}>Tap to start enrollment</Text>
+            </Card>
+            <Card onPress={() => setCurrentScreen('smartSelfieAuthentication')}>
+              <Text style={styles.cardTitle}>Smart Selfie Authentication</Text>
+              <Text style={styles.cardContent}>
+                Tap to start authentication
+              </Text>
+            </Card>
             <Card onPress={() => setCurrentScreen('another')}>
-              <Text style={styles.cardTitle}>Another Flow</Text>
-              <Text style={styles.cardContent}>Also opens native view</Text>
+              <Text style={styles.cardTitle}>Default Flow</Text>
+              <Text style={styles.cardContent}>
+                Also opens default native view
+              </Text>
             </Card>
           </ScrollView>
         </>
       )}
 
-      {currentScreen === 'document' && (
+      {currentScreen === 'documentVerification' && (
         <>
           <Header
             title="Document Verification"
@@ -98,6 +115,41 @@ export default function App(): React.JSX.Element {
               setCurrentScreen('home');
             }}
             style={styles.nativeView}
+          />
+        </>
+      )}
+
+      {currentScreen === 'smartSelfieEnrollment' && (
+        <>
+          <Header
+            title="Smart Selfie Enrollment"
+            onBack={() => setCurrentScreen('home')}
+          />
+          <RnWrapperRecipeView color="#ff6347" style={styles.nativeView} />
+        </>
+      )}
+
+      {currentScreen === 'smartSelfieAuthentication' && (
+        <>
+          <Header
+            title="Smart Selfie Authentication"
+            onBack={() => setCurrentScreen('home')}
+          />
+          <SmartSelfieAuthenticationView
+            style={styles.nativeView}
+            onSuccess={(e) => {
+              try {
+                const payload = JSON.parse(e.nativeEvent.result);
+                console.log('SmartSelfieAuth success:', payload);
+              } catch (err) {
+                console.warn('SmartSelfieAuth success (non-JSON):', e.nativeEvent.result);
+              }
+              setCurrentScreen('home');
+            }}
+            onError={(e) => {
+              console.error('SmartSelfieAuth error:', e.nativeEvent.error);
+              setCurrentScreen('home');
+            }}
           />
         </>
       )}

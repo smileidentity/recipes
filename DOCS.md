@@ -716,3 +716,96 @@ Tips
 - Event prop names in TS must match what you emit on iOS.
 - If OnSuccess/OnError types are missing, re-run codegen and pods.
 - Use weak->strong in blocks before accessing `_eventEmitter`.
+
+## Teach by doing: wrap SmileID SmartSelfie Authentication (iOS)
+
+Goal: expose `SmileID.smartSelfieAuthenticationScreen` as a React Native Fabric component with success/error callbacks.
+
+1) TS spec
+```ts
+// src/SmartSelfieAuthenticationViewNativeComponent.ts
+import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNativeComponent';
+import type { ViewProps } from 'react-native';
+import type { DirectEventHandler } from 'react-native/Libraries/Types/CodegenTypes';
+
+export type SmartSelfieAuthSuccessEvent = Readonly<{
+  selfieImageBase64: string;
+  livenessImagesBase64: string[];
+  jobStatusSummary?: string;
+}>;
+export type SmartSelfieAuthErrorEvent = Readonly<{ message: string; code?: string }>; 
+interface NativeProps extends ViewProps {
+  onSuccess?: DirectEventHandler<SmartSelfieAuthSuccessEvent>;
+  onError?: DirectEventHandler<SmartSelfieAuthErrorEvent>;
+}
+export default codegenNativeComponent<NativeProps>('SmartSelfieAuthenticationView');
+```
+
+2) Export it
+```ts
+// src/index.tsx
+export { default as SmartSelfieAuthenticationView } from './SmartSelfieAuthenticationViewNativeComponent';
+```
+
+3) Codegen mapping
+```json
+// package.json
+{
+  "codegenConfig": {
+    "ios": {
+      "componentProvider": {
+        "SmartSelfieAuthenticationView": "SmartSelfieAuthenticationView"
+      }
+    }
+  }
+}
+```
+
+4) iOS Swift/SwiftUI wrapper
+```swift
+// ios/SmartSelfieAuthenticationViewProvider.swift
+@objc public class SmartSelfieAuthenticationViewProvider: UIView {
+  @objc public var onSuccess: ((NSDictionary) -> Void)?
+  @objc public var onError: ((NSString, NSString?) -> Void)?
+  // Create UIHostingController with SmartSelfieAuthenticationRootView that calls onSuccess/onError
+}
+```
+
+Also add the SwiftUI root view:
+```swift
+// ios/SmartSelfieAuthenticationView.swift
+struct SmartSelfieAuthenticationRootView: View, SmartSelfieResultDelegate {
+  let onSuccess: (NSDictionary) -> Void
+  let onError: (String, String?) -> Void
+  var body: some View {
+    SmileID.smartSelfieAuthenticationScreen(userId: "userID", delegate: self)
+  }
+  // Map delegate outputs to onSuccess/onError
+}
+```
+
+5) iOS component view (ObjC++)
+```objc
+// ios/SmartSelfieAuthenticationView.mm
+// Similar to DocumentVerificationView.mm, set provider.onSuccess/.onError
+// and emit SmartSelfieAuthenticationViewEventEmitter events
+```
+
+6) JS usage
+```tsx
+<SmartSelfieAuthenticationView
+  style={{ flex: 1 }}
+  onSuccess={(e) => {
+    const { selfieImageBase64, livenessImagesBase64, jobStatusSummary } = e.nativeEvent;
+  }}
+  onError={(e) => {
+    const { message, code } = e.nativeEvent;
+  }}
+/> 
+```
+
+Build & verify
+- `yarn prepare`
+- `yarn start --reset-cache`
+- `cd example/ios && rm -rf Pods Podfile.lock build && pod install`
+- `yarn ios`
