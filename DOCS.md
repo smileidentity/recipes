@@ -22,6 +22,24 @@ In the old architecture of React Native, you would have used [Native Modules](ht
 // create a js view for your view for code gen
 // configure code gen
 
+## Base Compose host view (Expo-inspired)
+
+This template uses a reusable base host for Compose content inside React Native, inspired by Expo’s `ExpoComposeView`:
+
+Purpose:
+- Manage a ComposeView safely under RN, optionally hosting content directly or acting as a container.
+- Provide a dedicated ViewModelStoreOwner for view-level state isolation (prevents retained/duplicated UI when navigating back to a SmileID flow).
+- Dispose composition on detach and clear custom ViewModelStore to avoid leaks.
+
+Notes from the source docstring:
+- A base Compose-enabled view to be used within Expo Modules in React Native.
+- Manages setup of a ComposeView, optionally hosting it directly or acting as a container for nested Compose instances.
+- Provides lifecycle management for Compose content and a local ViewModelStore for view-level state isolation.
+- Inspired by: https://github.com/expo/expo/blob/main/packages/expo-modules-core/android/src/compose/expo/modules/kotlin/views/ExpoComposeView.kt
+- We explicitly manage a ViewModelStoreOwner to handle cases where Smile ID native SDK components retain ViewModel state across navigations. This ensures that any internal state (such as image paths, steps, or loading indicators) does not persist unintentionally when re-opening views, avoiding stale or duplicated UI.
+
+In this repo the base is `SmileIDComposeHostView(context, shouldUseAndroidLayout = false|true)`. Set `shouldUseAndroidLayout = true` if your view needs to force a measure/layout pass after `requestLayout()` under RN.
+
 
 # iOS
 
@@ -511,6 +529,9 @@ Using a specific react n
 
 - [Hermes crash: property not configurable / component undefined (iOS)](#ts-hermes)
 - [Module Resolution Error: main could not be resolved](#ts-module-resolve)
+- [Android: StackOverflowError in Compose (infinite recursion)](#ts-android-compose-recursion)
+- [Android: View doesn’t resize or re-layout under RN (requestLayout ignored)](#ts-android-requestlayout)
+- [Android: Camera preview shows black (CameraX lifecycle/layout under RN)](#ts-android-camerax-black)
 
 <a id="ts-hermes"></a>
 ### Hermes crash: `TypeError: property is not configurable` and `Cannot read property 'DocumentVerificationView' of undefined`
@@ -599,6 +620,96 @@ After cloning the repository or installing dependencies, always run:
 yarn install
 yarn prepare
 ```
+
+
+<a id="ts-android-compose-recursion"></a>
+### Android: StackOverflowError in Compose (infinite recursion)
+
+Symptoms:
+- Crash with `dispatchMountItems: caught exception` and `java.lang.StackOverflowError`.
+- Logcat shows `androidx.compose.ui.platform.ComposeView.Content(...)` repeated many times, often alternating with `SmileIDComposeHostView.kt:<line>`.
+
+Root cause:
+- Inside a `ComposeView` configuration block, calling `setContent { Content() }` resolves `Content()` to `ComposeView.Content` instead of the host view’s abstract composable, creating an infinite recursion loop.
+
+Fix:
+1) Qualify the call to the host’s composable:
+```kotlin
+// In SmileIDComposeHostView.configure(...)
+setContent { this@SmileIDComposeHostView.Content() }
+```
+2) Rebuild the Android app. The recursion will stop and the view will render normally.
+
+Notes:
+- This bug often presents only at runtime, with a very deep, repetitive stack pointing to `ComposeView.Content`.
+- Renaming the host method (e.g., to `renderContent()`) also avoids the symbol collision, but qualification is sufficient.
+
+
+<a id="ts-android-requestlayout"></a>
+### Android: View doesn’t resize or re-layout under RN (requestLayout ignored)
+
+Symptoms:
+- Your Compose-based view does not update size when its content changes.
+- Calling `requestLayout()` in native has no visible effect under React Native.
+
+Root cause:
+- React Native’s layout system (Yoga) doesn’t honor Android `requestLayout()` the way a pure native hierarchy would, so the child view isn’t re-measured/re-laid out automatically. See RN issue #17968 for background.
+
+Fix (final approach in this template):
+1) Use the provided base host view with an opt-in layout bridge.
+   - `SmileIDComposeHostView(context, shouldUseAndroidLayout = true)`
+   - When enabled, the host overrides `requestLayout()` to manually trigger measure/layout on the UI thread:
+```kotlin
+override fun requestLayout() {
+  super.requestLayout()
+  if (shouldUseAndroidLayout) {
+    post { measureAndLayout() }
+  }
+}
+@UiThread
+fun measureAndLayout() {
+  measure(
+    MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+    MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+  )
+  layout(left, top, right, bottom)
+}
+```
+2) Extend the host with `shouldUseAndroidLayout = true` in your Fabric views:
+```kotlin
+class DocumentVerificationView(context: Context) :
+  SmileIDComposeHostView(context = context, shouldUseAndroidLayout = true)
+```
+
+Trade-offs:
+- This simulates Android-side layout under RN control and works well for Compose content that needs imperative re-layout.
+- In some cases, Android-calculated layout may not match Yoga’s expected bounds. Use judiciously; if your view doesn’t need it, keep the default `false`.
+
+Lifecycle/state tip:
+- The base host assigns a `ViewTreeViewModelStoreOwner` from the Activity when available (FragmentActivity), or creates a custom store. It also clears any custom store on detach. This prevents retained Compose ViewModels and fixes camera re-initialization issues when navigating away and back to the view.
+
+
+<a id="ts-android-camerax-black"></a>
+### Android: Camera preview shows black (CameraX lifecycle/layout under RN)
+
+Symptoms:
+- Camera preview is black or briefly black when entering a SmileID Compose screen embedded in RN.
+- Sometimes resolves after navigating away/back, or after rotating the device.
+
+Root cause:
+- CameraX waits for a proper LifecycleOwner state and a valid surface/size before starting the stream. Under React Native, layout timing and lifecycle propagation can differ from a pure Android hierarchy, so the preview may start before the view has stable dimensions or lifecycle. See: https://issuetracker.google.com/issues/350994519
+
+Mitigations (used/proposed in this template):
+- Use a stable composition and dispose strategy: `ViewCompositionStrategy.DisposeOnDetachedFromWindow`.
+- Provide a consistent `ViewModelStoreOwner` to avoid retained state across remounts (base host does this), preventing stale camera session assumptions.
+- If your flow needs imperative re-measure, enable `shouldUseAndroidLayout = true` so `requestLayout()` triggers a measure/layout pass and the preview surface gets a correct size.
+- Ensure camera start happens on the UI thread and preferably after first composition/attach; if you manage CameraX directly, post initialization work until the view is attached and measured.
+- Optionally set a `ViewTreeLifecycleOwner` from the Activity/Fragment if your Compose content or CameraX integration reads it directly (not required by this template, but useful for custom camera pipelines).
+
+What to check if you still see black preview:
+- Confirm `SmileID.initialize(...)` runs before opening the screen.
+- Verify the host Activity is a `FragmentActivity` so internal components can access a valid lifecycle when needed.
+- Log the measured width/height of the preview container; zero sizes indicate layout isn’t finalized yet.
 
 
 
