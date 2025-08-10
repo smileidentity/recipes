@@ -599,3 +599,120 @@ After cloning the repository or installing dependencies, always run:
 yarn install
 yarn prepare
 ```
+
+## Exposing native callbacks to JS (iOS, Fabric)
+
+Forward SmileID native results (success/error) from Swift/SwiftUI to React Native using Fabric events.
+
+Summary
+- Add typed DirectEventHandler props in the TS spec.
+- In SwiftUI, call closures when SmileID delegate fires.
+- In the UIView provider, keep @objc callback properties and pass them into the SwiftUI root.
+- In the ObjC++ component view, set those callbacks and emit Fabric events to JS.
+- In JS, handle onSuccess/onError from e.nativeEvent.
+
+1) TypeScript spec: define events
+```ts
+// src/DocumentVerificationViewNativeComponent.ts
+import type { DirectEventHandler } from 'react-native/Libraries/Types/CodegenTypes';
+import type { ViewProps } from 'react-native';
+
+export type DocumentVerificationSuccessEvent = Readonly<{
+  selfie: string;
+  documentFrontFile: string;
+  documentBackFile?: string;
+  didSubmitDocumentVerificationJob: boolean;
+}>;
+
+export type DocumentVerificationErrorEvent = Readonly<{
+  message: string;
+  code?: string;
+}>;
+
+interface NativeProps extends ViewProps {
+  onSuccess?: DirectEventHandler<DocumentVerificationSuccessEvent>;
+  onError?: DirectEventHandler<DocumentVerificationErrorEvent>;
+}
+```
+
+2) SwiftUI: bridge SmileID delegate
+```swift
+// ios/DocumentVerificationView.swift
+struct DocumentVerificationRootView: View, DocumentVerificationResultDelegate {
+  let onSuccess: (NSDictionary) -> Void
+  let onError: (String, String?) -> Void
+
+  func didSucceed(selfie: URL, documentFrontImage: URL, documentBackImage: URL?, didSubmitDocumentVerificationJob: Bool) {
+    let payload: NSMutableDictionary = [
+      "selfie": selfie.absoluteString,
+      "documentFrontFile": documentFrontImage.absoluteString,
+      "didSubmitDocumentVerificationJob": didSubmitDocumentVerificationJob,
+    ]
+    if let documentBackImage { payload["documentBackFile"] = documentBackImage.absoluteString }
+    onSuccess(payload)
+  }
+
+  func didError(error: Error) { onError(error.localizedDescription, nil) }
+}
+```
+
+3) Provider: expose callbacks to ObjC
+```swift
+// ios/DocumentVerificationViewProvider.swift
+@objc public var onSuccess: ((NSDictionary) -> Void)?
+@objc public var onError: ((NSString, NSString?) -> Void)?
+
+self.hostingController = UIHostingController(
+  rootView: DocumentVerificationRootView(
+    onSuccess: { [weak self] payload in self?.onSuccess?(payload) },
+    onError: { [weak self] message, code in self?.onError?(message as NSString, code as NSString?) }
+  )
+)
+```
+
+4) ObjC++ component: emit Fabric events
+```objc
+// ios/DocumentVerificationView.mm
+__weak DocumentVerificationView *weakSelf = self;
+_view.onSuccess = ^(NSDictionary *payload) {
+  DocumentVerificationView *strongSelf = weakSelf; if (!strongSelf) return;
+  auto emitter = std::static_pointer_cast<const DocumentVerificationViewEventEmitter>(strongSelf->_eventEmitter);
+  if (!emitter) return;
+  // map payload -> event fields, then emit
+  DocumentVerificationViewEventEmitter::OnSuccess ev{};
+  // ... assign fields from payload ...
+  emitter->onSuccess(std::move(ev));
+};
+_view.onError = ^(NSString *message, NSString *code) {
+  DocumentVerificationView *strongSelf = weakSelf; if (!strongSelf) return;
+  auto emitter = std::static_pointer_cast<const DocumentVerificationViewEventEmitter>(strongSelf->_eventEmitter);
+  if (!emitter) return;
+  DocumentVerificationViewEventEmitter::OnError ev{};
+  // ... assign fields from message/code ...
+  emitter->onError(std::move(ev));
+};
+```
+
+5) JS usage
+```tsx
+<DocumentVerificationView
+  style={{ flex: 1 }}
+  onSuccess={(e) => {
+    const { selfie, documentFrontFile, documentBackFile, didSubmitDocumentVerificationJob } = e.nativeEvent;
+  }}
+  onError={(e) => {
+    const { message, code } = e.nativeEvent;
+  }}
+/>
+```
+
+Rebuild
+- Generate outputs and codegen: `yarn prepare`
+- Restart Metro: `yarn start --reset-cache`
+- Reinstall pods (example/ios): `rm -rf Pods Podfile.lock build && pod install`
+- Run iOS: `yarn ios`
+
+Tips
+- Event prop names in TS must match what you emit on iOS.
+- If OnSuccess/OnError types are missing, re-run codegen and pods.
+- Use weak->strong in blocks before accessing `_eventEmitter`.

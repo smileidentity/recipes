@@ -4,6 +4,8 @@ import SwiftUI
 
 @objc public class DocumentVerificationViewProvider: UIView {
   private var hostingController: UIHostingController<DocumentVerificationRootView>?
+  @objc public var onSuccess: ((NSDictionary) -> Void)?
+  @objc public var onError: ((NSString, NSString?) -> Void)?
   
   public override func layoutSubviews() {
        super.layoutSubviews()
@@ -16,7 +18,14 @@ import SwiftUI
      }
      
      self.hostingController = UIHostingController(
-       rootView: DocumentVerificationRootView()
+       rootView: DocumentVerificationRootView(
+         onSuccess: { [weak self] payload in
+           self?.onSuccess?(payload)
+         },
+         onError: { [weak self] message, code in
+           self?.onError?(message as NSString, code as NSString?)
+         }
+       )
      )
      
      if let hostingController = self.hostingController {

@@ -2,26 +2,42 @@ import SwiftUI
 import SmileID
 
 struct DocumentVerificationRootView: View, DocumentVerificationResultDelegate {
-    var body: some View {
-      SmileID.documentVerificationScreen(
-        countryCode: "KE",
-        delegate: self
-      )
+  let onSuccess: (NSDictionary) -> Void
+  let onError: (String, String?) -> Void
+
+  init(
+    onSuccess: @escaping (NSDictionary) -> Void = { _ in },
+    onError: @escaping (String, String?) -> Void = { _, _ in }
+  ) {
+    self.onSuccess = onSuccess
+    self.onError = onError
+  }
+
+  var body: some View {
+    SmileID.documentVerificationScreen(
+      countryCode: "KE",
+      delegate: self
+    )
+  }
+
+  func didSucceed(
+    selfie: URL,
+    documentFrontImage: URL,
+    documentBackImage: URL?,
+    didSubmitDocumentVerificationJob: Bool
+  ) {
+    let payload: NSMutableDictionary = [
+      "selfie": selfie.absoluteString,
+      "documentFrontFile": documentFrontImage.absoluteString,
+      "didSubmitDocumentVerificationJob": didSubmitDocumentVerificationJob,
+    ]
+    if let documentBackImage {
+      payload["documentBackFile"] = documentBackImage.absoluteString
     }
-  
-  func didSucceed(selfie: URL,documentFrontImage: URL,documentBackImage: URL?,didSubmitDocumentVerificationJob: Bool) {
-      var params: [String: Any] = [
-          "selfie": selfie.absoluteString,
-          "documentFrontFile": documentFrontImage.absoluteString,
-          "didSubmitDocumentVerificationJob": didSubmitDocumentVerificationJob,
-      ]
-      if let documentBackImage {
-          params["documentBackFile"] = documentBackImage.absoluteString
-      }
-    print("Successfully submitted Document Verification job")
+    onSuccess(payload)
   }
 
   func didError(error: Error) {
-    print("An error occurred - \(error.localizedDescription)")
+    onError(error.localizedDescription, nil)
   }
 }

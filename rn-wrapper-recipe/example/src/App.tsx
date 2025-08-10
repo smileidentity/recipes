@@ -72,7 +72,33 @@ export default function App(): React.JSX.Element {
             title="Document Verification"
             onBack={() => setCurrentScreen('home')}
           />
-          <DocumentVerificationView style={styles.nativeView} />
+          <DocumentVerificationView
+            onSuccess={(e) => {
+              const {
+                selfie,
+                documentFrontFile,
+                documentBackFile,
+                didSubmitDocumentVerificationJob,
+              } = e.nativeEvent;
+              // handle success
+              console.log('RNWrapperRecipeSuccess:', {
+                selfie,
+                documentFrontFile,
+                documentBackFile,
+                didSubmitDocumentVerificationJob,
+              });
+              // navigate to home
+              setCurrentScreen('home');
+            }}
+            onError={(e) => {
+              const { message, code } = e.nativeEvent;
+              // handle error
+              console.error('Error:', { message, code });
+              // navigate to home
+              setCurrentScreen('home');
+            }}
+            style={styles.nativeView}
+          />
         </>
       )}
 
