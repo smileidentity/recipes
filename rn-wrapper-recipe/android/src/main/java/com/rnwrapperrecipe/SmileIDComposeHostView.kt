@@ -12,7 +12,6 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.ReactContext
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
@@ -46,9 +45,6 @@ abstract class SmileIDComposeHostView(
 
   private var customViewModelStoreOwner: ViewModelStoreOwner? = null
 
-
-  // Remove this incomplete comment entirely
-
   @Composable
   protected abstract fun Content()
 
@@ -59,7 +55,6 @@ abstract class SmileIDComposeHostView(
       layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
       setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
       setupViewModelStoreOwner(this)
-      // Qualify to call the host's Composable, not ComposeView.Content (which would recurse)
       setContent { this@SmileIDComposeHostView.Content() }
 
       addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
@@ -95,7 +90,10 @@ abstract class SmileIDComposeHostView(
    * The event prop names come from codegen (e.g., onSuccess/onError), and the
    * native event name is the prop name prefixed with "top" (e.g., topOnSuccess).
    */
-  protected fun dispatchDirectEvent(eventPropName: String, payload: WritableMap = Arguments.createMap()) {
+  protected fun dispatchDirectEvent(
+    eventPropName: String,
+    payload: WritableMap = Arguments.createMap()
+  ) {
     val reactContext = UIManagerHelper.getReactContext(this)
     val viewTag = id
     val surfaceId = UIManagerHelper.getSurfaceId(this)
@@ -120,7 +118,7 @@ abstract class SmileIDComposeHostView(
     super.requestLayout()
     if (shouldUseAndroidLayout) {
       // We need to force measure and layout, because React Native doesn't do it for us.
-      post(Runnable { measureAndLayout() })
+      post { measureAndLayout() }
     }
   }
 
