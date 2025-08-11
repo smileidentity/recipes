@@ -47,9 +47,7 @@ abstract class SmileIDComposeHostView(
   private var customViewModelStoreOwner: ViewModelStoreOwner? = null
 
 
-  /**
-   * I
-   */
+  // Remove this incomplete comment entirely
 
   @Composable
   protected abstract fun Content()
