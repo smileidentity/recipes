@@ -10427,6 +10427,7 @@ __metadata:
     react-native: 0.78.0
     react-native-builder-bob: ^0.40.8
     react-native-monorepo-config: ^0.1.9
+    react-native-safe-area-context: ^5.0.0
   languageName: unknown
   linkType: soft
 
@@ -10463,6 +10464,16 @@ __metadata:
     react-native: "*"
   languageName: unknown
   linkType: soft
+
+"react-native-safe-area-context@npm:^5.0.0":
+  version: 5.6.0
+  resolution: "react-native-safe-area-context@npm:5.6.0"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 23f382a6504dc6ff1064fe45af53207014a27d3312eeaa5e0fd92281c425cb518d7e5e7bc79cf29b0f8e685a30931df93800dfe98e5d81bd768499aa5e737ab0
+  languageName: node
+  linkType: hard
 
 "react-native@npm:0.78.0":
   version: 0.78.0

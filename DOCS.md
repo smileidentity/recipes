@@ -551,3 +551,11 @@ What to check if you still see black preview:
 - Verify the host Activity is a `FragmentActivity` so internal components can access a valid lifecycle when needed.
 - Log the measured width/height of the preview container; zero sizes indicate layout isn’t finalized yet.
 
+
+## Resources
+
+- [Exposing SwiftUI Views to React Native: An Integration Guide](https://www.callstack.com/blog/exposing-swiftui-views-to-react-native-an-integration-guide)
+- [Native Modules](https://reactnative.dev/docs/turbo-native-modules-introduction)
+- [Native Components](https://reactnative.dev/docs/fabric-native-components-introduction)
+- [Deep Dive into React Native’s New Architecture: JSI, TurboModules, Fabric & Yoga](https://medium.com/@DhruvHarsora/deep-dive-into-react-natives-new-architecture-jsi-turbomodules-fabric-yoga-234bbdf853b4)
+
