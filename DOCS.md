@@ -372,6 +372,7 @@ Same as iOS via `src/NativeSmileID.ts`:
 - [Android: StackOverflowError in Compose (infinite recursion)](#ts-android-compose-recursion)
 - [Android: View doesn’t resize or re-layout under RN (requestLayout ignored)](#ts-android-requestlayout)
 - [Android: Camera preview shows black (CameraX lifecycle/layout under RN)](#ts-android-camerax-black)
+- [Windows Common Issues](#ts-windows-common-issues)
 
 <a id="ts-hermes"></a>
 ### Hermes crash: `TypeError: property is not configurable` and `Cannot read property 'DocumentVerificationView' of undefined`
@@ -551,6 +552,153 @@ What to check if you still see black preview:
 - Verify the host Activity is a `FragmentActivity` so internal components can access a valid lifecycle when needed.
 - Log the measured width/height of the preview container; zero sizes indicate layout isn’t finalized yet.
 
+<a id="ts-windows-common-issues"></a>
+### Common Issues on Windows
+
+#### “View config getter … CustomView … undefined” (and related build issues)
+
+Symptoms:
+- Rendering a Fabric native component fails with:
+  - “View config getter callback for component `CustomView` must be a function (received `undefined`)”
+  - Or build succeeds but the component is undefined at runtime.
+
+Root cause:
+- Metro resolves the wrong entry (compiled lib vs. source), or a duplicate copy of `react`/`react-native` is pulled into the bundle. This desynchronizes the Fabric component registry and the native build (codegen), so your component isn’t registered as expected.
+- Typical triggers:
+  - The library doesn’t expose a proper `react-native` entry and Metro loads `main` (compiled lib) instead of `src` (where codegen aligns).
+  - Hierarchical lookup pulls a second copy of `react`/`react-native`.
+  - Monorepo resolution isn’t mapped to the local workspace package.
+
+Fix:
+
+1) Library entry for Metro (package.json) 
+
+Ensure the library exposes a React Native entry so Metro prefers the source used for codegen:
+
+```json
+{
+  "main": "./lib/module/index.js",
+  "react-native": "./src/index.tsx",
+  "types": "./lib/typescript/src/index.d.ts"
+}
+```
+
+Why: Metro should consume `src` (matching generated Fabric artifacts) while Node/resolvers use the compiled `lib` for non-RN consumers.
+
+2) Metro config (example app)
+
+Harden Metro for monorepo + Fabric codegen and avoid duplicate React/RN:
+
+```js
+const path = require('path');
+const { getDefaultConfig } = require('@react-native/metro-config');
+const { withMetroConfig } = require('react-native-monorepo-config');
+const pkg = require('../package.json');
+
+const root = path.resolve(__dirname, '..');
+
+/**
+ * Metro configuration
+ * https://facebook.github.io/metro/docs/configuration
+ *
+ * @type {import('metro-config').MetroConfig}
+ */
+const config = getDefaultConfig(__dirname);
+
+// Watch the monorepo root so edits in the library are picked up
+config.watchFolders = [root];
+
+// Resolver tweaks for monorepo + Fabric codegen
+config.resolver = {
+  ...(config.resolver || {}),
+  // Prefer React Native entry so Metro loads src (with codegen) over compiled lib
+  resolverMainFields: ['react-native', 'browser', 'main'],
+  // Prevent Metro from walking up and pulling duplicates
+  disableHierarchicalLookup: true,
+  // Resolve deps from app and workspace to keep a single tree
+  nodeModulesPaths: [
+    path.join(__dirname, 'node_modules'),
+    path.join(root, 'node_modules'),
+  ],
+  // Map singletons and the local package to the repo root
+  extraNodeModules: {
+    ...(config.resolver?.extraNodeModules || {}),
+    [pkg.name]: root,
+    'react-native': path.join(__dirname, 'node_modules/react-native'),
+    react: path.join(__dirname, 'node_modules/react'),
+    scheduler: path.join(__dirname, 'node_modules/scheduler'),
+    // Keep your shim; add others only if installed
+    'react-native-safe-area-context': path.resolve(
+      __dirname,
+      'shims/react-native-safe-area-context'
+    ),
+  },
+};
+
+module.exports = withMetroConfig(config, {
+  root,
+  dirname: __dirname,
+});
+```
+
+Notes:
+- If you need SVG support, install `react-native-svg-transformer` before enabling it in Metro. Missing transformers can prevent Metro from starting.
+
+Verify the fix:
+
+```powershell
+cd "c:\\Users\\Guest User\\Downloads\\wrap\\example"
+yarn start --reset-cache
+```
+
+In another terminal:
+
+```powershell
+cd "c:\\Users\\Guest User\\Downloads\\wrap\\example"
+yarn android
+```
+
+Expected:
+- Build succeeds, the app launches, and `<DocumentVerificationView />` renders without the “view config getter” error.
+
+If the error persists:
+- Ensure imports reference the local package, not a relative path or a different alias:
+  - `import { DocumentVerificationView } from 'react-native-rn-wrapper-recipe';`
+- Verify the Fabric component name matches across layers:
+  - JS: `codegenNativeComponent<...>('DocumentVerificationView')`
+  - Android: `DocumentVerificationViewManager.NAME = "DocumentVerificationView"`
+  - iOS: ObjC class `DocumentVerificationView : RCTViewComponentView`
+- Confirm the library’s `package.json` includes `"react-native": "./src/index.tsx"`.
+- Force a fresh native build (clears CMake/C++ intermediates):
+
+```powershell
+cd "your_project_path/example"
+# Stop Metro first if running
+Remove-Item -Recurse -Force .\\android\\app\\.cxx -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force .\\android\\app\\build -ErrorAction SilentlyContinue
+yarn android
+```
+
+#### NDK build failures: undefined libc++ symbols (Windows + RN 0.78)
+
+Symptoms:
+- Many undefined libc++ symbols during C++ link (ld.lld) when building CMake targets.
+
+Root cause:
+- NDK r27 on Windows can produce libc++ linker errors with React Native 0.78. RN 0.78 is stable with NDK r26.3.
+
+Fix:
+- Pin NDK to r26.3 in your example app’s Gradle:
+
+```groovy
+// example/android/build.gradle
+ext {
+  // ...
+  ndkVersion = "26.3.11579264"
+}
+```
+
+This avoids libc++ linker issues observed with NDK r27 on Windows.
 
 ## Resources
 
