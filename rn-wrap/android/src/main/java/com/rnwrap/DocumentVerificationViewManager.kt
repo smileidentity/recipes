@@ -1,4 +1,4 @@
-package com.rnwrapperrecipe
+package com.rnwrap
 
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.SimpleViewManager

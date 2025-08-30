@@ -15,7 +15,7 @@ import {
   DocumentVerificationView,
   SmartSelfieAuthenticationView,
   SmartSelfieEnrollmentView,
-  RnWrapperRecipeView,
+  RnWrapView,
   initialize,
 } from 'react-native-rn-wrap';
 import { useEffect, useState } from 'react';
@@ -223,7 +223,7 @@ export default function App(): React.JSX.Element {
               title="Another Flow"
               onBack={() => setCurrentScreen('home')}
             />
-            <RnWrapperRecipeView color="#ff6347" style={styles.nativeView} />
+            <RnWrapView color="#ff6347" style={styles.nativeView} />
           </>
         )}
       </SafeAreaView>

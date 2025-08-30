@@ -1,4 +1,4 @@
-package com.rnwrapperrecipe
+package com.rnwrap
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

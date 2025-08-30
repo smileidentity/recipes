@@ -1,9 +1,9 @@
 #import "RnWrapperRecipeView.h"
 
-#import <react/renderer/components/RnWrapperRecipeViewSpec/ComponentDescriptors.h>
-#import <react/renderer/components/RnWrapperRecipeViewSpec/EventEmitters.h>
-#import <react/renderer/components/RnWrapperRecipeViewSpec/Props.h>
-#import <react/renderer/components/RnWrapperRecipeViewSpec/RCTComponentViewHelpers.h>
+#import <react/renderer/components/RnWrapViewSpec/ComponentDescriptors.h>
+#import <react/renderer/components/RnWrapViewSpec/EventEmitters.h>
+#import <react/renderer/components/RnWrapViewSpec/Props.h>
+#import <react/renderer/components/RnWrapViewSpec/RCTComponentViewHelpers.h>
 
 #import "RCTFabricComponentsPlugins.h"
 

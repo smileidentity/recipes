@@ -30,7 +30,7 @@ def getExtOrIntegerDefault(name) {
 }
 
 android {
-  namespace "com.rnwrapperrecipe"
+  namespace "com.rnwrap"
 
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
@@ -138,5 +138,5 @@ dependencies {
 react {
   jsRootDir = file("../src/")
   libraryName = "RnWrapperRecipeView"
-  codegenJavaPackageName = "com.rnwrapperrecipe"
+  codegenJavaPackageName = "com.rnwrap"
 }

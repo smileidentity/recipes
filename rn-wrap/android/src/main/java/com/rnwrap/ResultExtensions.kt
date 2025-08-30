@@ -1,4 +1,4 @@
-package com.rnwrapperrecipe
+package com.rnwrap
 
 import android.os.Parcelable
 import com.facebook.react.bridge.Arguments

@@ -150,15 +150,15 @@
     ]
   },
   "codegenConfig": {
-    "name": "RnWrapperRecipeViewSpec",
+    "name": "RnWrapViewSpec",
     "type": "components",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "com.rnwrapperrecipe"
+      "javaPackageName": "com.rnwrap"
     },
     "ios": {
       "componentProvider": {
-        "RnWrapperRecipeView": "RnWrapperRecipeView",
+        "RnWrapView": "RnWrapView",
         "DocumentVerificationView": "DocumentVerificationView",
         "SmartSelfieAuthenticationView": "SmartSelfieAuthenticationView",
         "SmartSelfieEnrollmentView": "SmartSelfieEnrollmentView"

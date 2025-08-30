@@ -1,4 +1,4 @@
-package com.rnwrapperrecipe
+package com.rnwrap
 
 import android.content.Context
 import android.view.View

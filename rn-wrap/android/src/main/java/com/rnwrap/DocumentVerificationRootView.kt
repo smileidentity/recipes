@@ -1,4 +1,4 @@
-package com.rnwrapperrecipe
+package com.rnwrap
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,13 +7,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.smileidentity.SmileID
-import com.smileidentity.compose.SmartSelfieAuthentication
-import com.smileidentity.results.SmartSelfieResult
-import com.smileidentity.util.randomUserId
+import com.smileidentity.compose.DocumentVerification
+import com.smileidentity.results.DocumentVerificationResult
 
 @Composable
-fun SmartSelfieAuthenticationRootView(
-  onResult: (SmartSelfieResult) -> Unit,
+fun DocumentVerificationRootView(
+  onResult: (DocumentVerificationResult) -> Unit,
   onError: (Throwable) -> Unit
 ) {
   Column (
@@ -22,8 +21,8 @@ fun SmartSelfieAuthenticationRootView(
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.Center
   ) {
-    SmileID.SmartSelfieAuthentication(
-      userId = randomUserId()
+    SmileID.DocumentVerification(
+      countryCode = "KE",
     ) { result ->
         result.handle(
           onSuccess = onResult,

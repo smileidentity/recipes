@@ -1,10 +1,10 @@
-package com.rnwrapperrecipe
+package com.rnwrap
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import com.smileidentity.results.DocumentVerificationResult
+import com.smileidentity.results.SmartSelfieResult
 
-class DocumentVerificationView(context: Context) :
+class SmartSelfieAuthenticationView(context: Context) :
   SmileIDComposeHostView(
     context = context,
     shouldUseAndroidLayout = true
@@ -12,12 +12,12 @@ class DocumentVerificationView(context: Context) :
 
   @Composable
   override fun Content() {
-    DocumentVerificationRootView(
-      onResult = { result: DocumentVerificationResult ->
+    SmartSelfieAuthenticationRootView(
+      onResult = { result: SmartSelfieResult ->
         dispatchDirectEvent(eventPropName = "onSuccess", payload = result.toWritableMap())
       },
       onError = { throwable: Throwable ->
-        dispatchDirectEvent(eventPropName = "onError", payload = throwable.toDocumentVerificationErrorPayload())
+        dispatchDirectEvent(eventPropName = "onError", payload = throwable.toSmartSelfieErrorPayload())
       }
     )
   }

@@ -1,4 +1,4 @@
-package com.rnwrapperrecipe
+package com.rnwrap
 
 import android.graphics.Color
 import com.facebook.react.module.annotations.ReactModule
