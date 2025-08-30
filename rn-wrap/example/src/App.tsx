@@ -17,7 +17,7 @@ import {
   SmartSelfieEnrollmentView,
   RnWrapperRecipeView,
   initialize,
-} from 'react-native-rn-wrapper-recipe';
+} from 'react-native-rn-wrap';
 import { useEffect, useState } from 'react';
 import ScrollView = Animated.ScrollView;
 

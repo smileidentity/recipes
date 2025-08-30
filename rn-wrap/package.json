@@ -1,8 +1,9 @@
 {
-  "name": "react-native-rn-wrapper-recipe",
+  "name": "react-native-rn-wrap",
   "version": "0.1.0",
-  "description": "react-native-rn-wrapper-recipe",
+  "description": "react-native-rn-wrap",
   "main": "./lib/module/index.js",
+  "react-native": "./src/index.tsx",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
     ".": {
@@ -32,7 +33,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace react-native-rn-wrapper-recipe-example",
+    "example": "yarn workspace react-native-rn-wrap-example",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
@@ -47,14 +48,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wangerekaharun/react-native-rn-wrapper-recipe.git"
+    "url": "git+https://github.com/wangerekaharun/react-native-rn-wrap.git"
   },
   "author": "Harun Wangereka <harunwangereka@gmail.com> (https://github.com/wangerekaharun)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/wangerekaharun/react-native-rn-wrapper-recipe/issues"
+    "url": "https://github.com/wangerekaharun/react-native-rn-wrap/issues"
   },
-  "homepage": "https://github.com/wangerekaharun/react-native-rn-wrapper-recipe#readme",
+  "homepage": "https://github.com/wangerekaharun/react-native-rn-wrap#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

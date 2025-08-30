@@ -1,12 +1,12 @@
-# react-native-rn-wrapper-recipe
+# react-native-rn-wrap
 
-react-native-rn-wrapper-recipe
+react-native-rn-wrap
 
 ## Installation
 
 
 ```sh
-npm install react-native-rn-wrapper-recipe
+npm install react-native-rn-wrap
 ```
 
 
@@ -14,7 +14,7 @@ npm install react-native-rn-wrapper-recipe
 
 
 ```js
-import { RnWrapperRecipeView } from "react-native-rn-wrapper-recipe";
+import { RnWrapperRecipeView } from "react-native-rn-wrap";
 
 // ...
 

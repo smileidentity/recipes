@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "react-native-rn-wrapper-recipe": ["./src/index"]
+  "react-native-rn-wrap": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

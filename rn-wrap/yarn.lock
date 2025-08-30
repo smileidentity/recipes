@@ -10409,9 +10409,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-rn-wrapper-recipe-example@workspace:example":
+"react-native-rn-wrap-example@workspace:example":
   version: 0.0.0-use.local
-  resolution: "react-native-rn-wrapper-recipe-example@workspace:example"
+  resolution: "react-native-rn-wrap-example@workspace:example"
   dependencies:
     "@babel/core": ^7.25.2
     "@babel/preset-env": ^7.25.3
@@ -10431,9 +10431,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"react-native-rn-wrapper-recipe@workspace:.":
+"react-native-rn-wrap@workspace:.":
   version: 0.0.0-use.local
-  resolution: "react-native-rn-wrapper-recipe@workspace:."
+  resolution: "react-native-rn-wrap@workspace:."
   dependencies:
     "@commitlint/config-conventional": ^19.6.0
     "@eslint/compat": ^1.2.7
