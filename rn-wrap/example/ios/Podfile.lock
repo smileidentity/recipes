@@ -1597,7 +1597,7 @@ PODS:
     - React-logger (= 0.78.0)
     - React-perflogger (= 0.78.0)
     - React-utils (= 0.78.0)
-  - RnWrapperRecipe (0.1.0):
+  - RnWrap (0.1.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1702,7 +1702,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
-  - RnWrapperRecipe (from `../..`)
+  - RnWrap (from `../..`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -1849,7 +1849,7 @@ EXTERNAL SOURCES:
     :path: build/generated/ios
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
-  RnWrapperRecipe:
+  RnWrap:
     :path: "../.."
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
@@ -1923,7 +1923,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: a1fb08dfdc7ebc387b2e54cfc9decd283ed821d8
   ReactCodegen: 008c319179d681a6a00966edfc67fda68f9fbb2e
   ReactCommon: 0c097b53f03d6bf166edbcd0915da32f3015dd90
-  RnWrapperRecipe: 670a8aac3aa930b8ceb1935c15bdb0ac4ab9b104
+  RnWrap: 2d99dc43e4c5c7de5952ef7d554519a84ce845dd
   Sentry: 59993bffde4a1ac297ba6d268dc4bbce068d7c1b
   SmileID: 8af7cd0190245e561ec2496dda08eeb3ecb61f7d
   SmileIDSecurity: 9bf50182c931074316892e929ddcfc34f74368c5
@@ -1931,6 +1931,6 @@ SPEC CHECKSUMS:
   Yoga: afd04ff05ebe0121a00c468a8a3c8080221cb14c
   ZIPFoundation: b8c29ea7ae353b309bc810586181fd073cb3312c
 
-PODFILE CHECKSUM: c3b07455e355f41aced737052ce0a3c5282cd85e
+PODFILE CHECKSUM: 53a1cdf596eddfa5abc4323a9f3097253057df32
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.15.2
