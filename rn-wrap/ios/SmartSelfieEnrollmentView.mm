@@ -1,10 +1,10 @@
 #if RCT_NEW_ARCH_ENABLED
 #import "SmartSelfieEnrollmentView.h"
 
-#if __has_include("RnWrapperRecipe/RnWrapperRecipe-Swift.h")
-#import "RnWrapperRecipe/RnWrapperRecipe-Swift.h"
+#if __has_include("RnWrap/RnWrap-Swift.h")
+#import "RnWrap/RnWrap-Swift.h"
 #else
-#import "RnWrapperRecipe-Swift.h"
+#import "RnWrap-Swift.h"
 #endif
 
 #import <react/renderer/components/RnWrapViewSpec/ComponentDescriptors.h>

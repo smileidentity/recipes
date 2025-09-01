@@ -1,5 +1,9 @@
 #import "SmileIDModule.h"
-#import "RnWrapperRecipe-Swift.h"
+#if __has_include("RnWrap/RnWrap-Swift.h")
+#import "RnWrap/RnWrap-Swift.h"
+#else
+#import "RnWrap-Swift.h"
+#endif
 
 @implementation SmileIDModule
 
