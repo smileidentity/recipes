@@ -9,7 +9,7 @@ import java.util.ArrayList
 class RnWrapperRecipeViewPackage : ReactPackage {
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
     val viewManagers: MutableList<ViewManager<*, *>> = ArrayList()
-    viewManagers.add(RnWrapperRecipeViewManager())
+    viewManagers.add(RnWrapViewManager())
     viewManagers.add(DocumentVerificationViewManager())
     viewManagers.add(SmartSelfieAuthenticationViewManager())
     viewManagers.add(SmartSelfieEnrollmentViewManager())

@@ -1,14 +1,14 @@
 #import <React/RCTViewComponentView.h>
 #import <UIKit/UIKit.h>
 
-#ifndef RnWrapperRecipeViewNativeComponent_h
-#define RnWrapperRecipeViewNativeComponent_h
+#ifndef RnWrapViewNativeComponent_h
+#define RnWrapViewNativeComponent_h
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface RnWrapperRecipeView : RCTViewComponentView
+@interface RnWrapView : RCTViewComponentView
 @end
 
 NS_ASSUME_NONNULL_END
 
-#endif /* RnWrapperRecipeViewNativeComponent_h */
+#endif /* RnWrapViewNativeComponent_h */

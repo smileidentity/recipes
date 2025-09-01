@@ -1,4 +1,4 @@
-#import "RnWrapperRecipeView.h"
+#import "RnWrapView.h"
 
 #import <react/renderer/components/RnWrapViewSpec/ComponentDescriptors.h>
 #import <react/renderer/components/RnWrapViewSpec/EventEmitters.h>
@@ -9,23 +9,23 @@
 
 using namespace facebook::react;
 
-@interface RnWrapperRecipeView () <RCTRnWrapperRecipeViewViewProtocol>
+@interface RnWrapView () <RCTRnWrapViewViewProtocol>
 
 @end
 
-@implementation RnWrapperRecipeView {
+@implementation RnWrapView {
     UIView * _view;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
 {
-    return concreteComponentDescriptorProvider<RnWrapperRecipeViewComponentDescriptor>();
+    return concreteComponentDescriptorProvider<RnWrapViewComponentDescriptor>();
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
 {
   if (self = [super initWithFrame:frame]) {
-    static const auto defaultProps = std::make_shared<const RnWrapperRecipeViewProps>();
+    static const auto defaultProps = std::make_shared<const RnWrapViewProps>();
     _props = defaultProps;
 
     _view = [[UIView alloc] init];
@@ -38,8 +38,8 @@ using namespace facebook::react;
 
 - (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps
 {
-    const auto &oldViewProps = *std::static_pointer_cast<RnWrapperRecipeViewProps const>(_props);
-    const auto &newViewProps = *std::static_pointer_cast<RnWrapperRecipeViewProps const>(props);
+    const auto &oldViewProps = *std::static_pointer_cast<RnWrapViewProps const>(_props);
+    const auto &newViewProps = *std::static_pointer_cast<RnWrapViewProps const>(props);
 
     if (oldViewProps.color != newViewProps.color) {
         NSString * colorToConvert = [[NSString alloc] initWithUTF8String: newViewProps.color.c_str()];
@@ -49,9 +49,9 @@ using namespace facebook::react;
     [super updateProps:props oldProps:oldProps];
 }
 
-Class<RCTComponentViewProtocol> RnWrapperRecipeViewCls(void)
+Class<RCTComponentViewProtocol> RnWrapViewCls(void)
 {
-    return RnWrapperRecipeView.class;
+    return RnWrapView.class;
 }
 
 - hexStringToColor:(NSString *)stringToConvert
