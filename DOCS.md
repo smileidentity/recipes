@@ -1,3 +1,9 @@
+If you encounter an error similar to:
+Error: While trying to resolve module `react-native-rn-wrap` from file `/path/to/example/src/App.tsx`, 
+ Ensure imports reference the local package, not a relative path or a different alias:
+Error: While trying to resolve module `react-native-rn-wrap` from file `/path/to/example/src/App.tsx`, 
+ Ensure imports reference the local package, not a relative path or a different alias:
+  - `import { DocumentVerificationView } from 'react-native-rn-wrap';`
 # Creating Your Own React Native Wrapper for SmileID SDKs
 
 This doc provides a guide on how to create your own React Native wrapper for the SmileID SDKs. This is useful if you want to integrate the SmileID functionality into your React Native application.
@@ -44,9 +50,9 @@ Cons
 Bottom line: Use a library for your Fabric components—particularly on iOS—so you get predictable bridging and stable JS events without fragile app-level tweaks.
 
 
-**Implementation Structure (rn-wrapper-recipe)**:
+**Implementation Structure (rn-wrap)**:
 ```
-rn-wrapper-recipe/
+rn-wrap/
 ├── package.json
 ├── src/
 │   ├── index.tsx
@@ -77,7 +83,7 @@ rn-wrapper-recipe/
 We scaffold the library with create-react-native-library, an official CLI for generating React Native library packages. It supports Fabric view templates and lets you pin the React Native version used in the example app and configs.
 
 ```bash
-npx create-react-native-library@latest rn-wrapper-recipe --reactNativeVersion 0.78.0
+npx create-react-native-library@latest rn-wrap --reactNativeVersion 0.78.0
 ```
 
 During the interactive prompts, pick Fabric view (integration for native views to JS). The screenshot below shows the prompt flow and the Fabric view selection.
@@ -95,11 +101,11 @@ yarn install
 yarn prepare
 
 # Android
-cd rn-wrapper-recipe/example
+cd rn-wrap/example
 yarn android
 
 # iOS (New Architecture)
-cd rn-wrapper-recipe/example/ios
+cd rn-wrap/example/ios
 rm -rf Pods Podfile.lock build
 RCT_NEW_ARCH_ENABLED=1 bundle exec pod install --repo-update
 cd ..
@@ -276,18 +282,18 @@ This section documents how the wrapper exposes SmileID iOS SDK static methods to
 
 ### Files involved
 - iOS native module and bridge
-  - `rn-wrapper-recipe/ios/SmileIDModule.h` — RCTBridgeModule interface
-  - `rn-wrapper-recipe/ios/SmileIDModule.mm` — Objective‑C implementation exported as `RCT_EXPORT_MODULE(SmileID)` with two promise methods:
+  - `rn-wrap/ios/SmileIDModule.h` — RCTBridgeModule interface
+  - `rn-wrap/ios/SmileIDModule.mm` — Objective‑C implementation exported as `RCT_EXPORT_MODULE(SmileID)` with two promise methods:
     - `initialize(useSandbox, enableCrashReporting, config?: NSDictionary, apiKey?: NSString)`
     - `setCallbackUrl(url?: NSString)`
-  - `rn-wrapper-recipe/ios/SmileIDBridge.swift` — Swift helper that:
+  - `rn-wrap/ios/SmileIDBridge.swift` — Swift helper that:
     - Sets wrapper info: `SmileID.setWrapperInfo(name: .reactNative, version: <SMILE_ID_VERSION|unknown>)`
     - Decodes optional `configJson` into `Config` (snake_case JSON)
     - Performs initialization fallbacks and ensures calls run on the main thread
 - JS binding
-  - `rn-wrapper-recipe/src/NativeSmileID.ts` — Type-safe wrapper over `NativeModules.SmileID` with `initialize` and `setCallbackUrl` exported for app use
+  - `rn-wrap/src/NativeSmileID.ts` — Type-safe wrapper over `NativeModules.SmileID` with `initialize` and `setCallbackUrl` exported for app use
 - Example usage
-  - `rn-wrapper-recipe/example/src/App.tsx` — Calls `initialize(...)` once on startup with a sample config
+  - `rn-wrap/example/src/App.tsx` — Calls `initialize(...)` once on startup with a sample config
 
 ### API (JS)
 - `initialize(useSandbox: boolean, enableCrashReporting: boolean, config?: SmileConfig, apiKey?: string): Promise<void>`
@@ -317,7 +323,7 @@ When you add or change native iOS files, reinstall Pods and rebuild:
 
 ```sh
 # From the example app (or host app) iOS folder
-cd rn-wrapper-recipe/example/ios
+cd rn-wrap/example/ios
 rm -rf Pods Podfile.lock build
 RCT_NEW_ARCH_ENABLED=1 bundle exec pod install --repo-update
 cd ..
@@ -337,11 +343,11 @@ Android mirrors the iOS approach with a Kotlin native module exposing `initializ
 
 ### Files involved
 - Native module and registration
-  - `rn-wrapper-recipe/android/src/main/java/com/rnwrapperrecipe/SmileIDModule.kt` — Kotlin module exposing:
+  - `rn-wrap/android/src/main/java/com/rnwrapperrecipe/SmileIDModule.kt` — Kotlin module exposing:
     - `initialize(useSandbox: Boolean, enableCrashReporting: Boolean, config: ReadableMap?, apiKey: String?)`
     - `setCallbackUrl(url: String?)`
     Both methods resolve a Promise and run on the main thread via `UiThreadUtil.runOnUiThread { ... }`.
-  - `rn-wrapper-recipe/android/src/main/java/com/rnwrapperrecipe/RnWrapperRecipePackage.kt` — Registers `SmileIDModule` in `createNativeModules`.
+  - `rn-wrap/android/src/main/java/com/rnwrapperrecipe/RnWrapperRecipePackage.kt` — Registers `SmileIDModule` in `createNativeModules`.
 
 ### API surface (JS)
 Same as iOS via `src/NativeSmileID.ts`:
@@ -387,7 +393,7 @@ Root cause:
 
 Fix:
 1) Simplify JS exports to avoid star re-exports
-   - In `rn-wrapper-recipe/src/index.tsx`, export only named defaults:
+  - In `rn-wrap/src/index.tsx`, export only named defaults:
      - Before:
        - `export { default as RnWrapperRecipeView } from './RnWrapperRecipeViewNativeComponent';`
        - `export * from './RnWrapperRecipeViewNativeComponent';`
@@ -397,7 +403,7 @@ Fix:
        - `export { default as RnWrapperRecipeView } from './RnWrapperRecipeViewNativeComponent';`
        - `export { default as DocumentVerificationView } from './DocumentVerificationViewNativeComponent';`
 
-   - Ensure the built output mirrors this. In `rn-wrapper-recipe/lib/module/index.js` remove star re-exports as well and keep only the two named default exports.
+  - Ensure the built output mirrors this. In `rn-wrap/lib/module/index.js` remove star re-exports as well and keep only the two named default exports.
 
 2) Avoid Swift/ObjC name collision (optional but recommended)
    - If you have a SwiftUI type named `DocumentVerificationView`, rename it to something like `DocumentVerificationRootView` and update the provider to reference the new name:
@@ -409,9 +415,9 @@ Fix:
      - `yarn install`
      - `yarn prepare` (runs bob build to produce `lib/`)
    - Restart Metro with a clean cache from the example app:
-     - `cd rn-wrapper-recipe/example && yarn start --reset-cache`
+  - `cd rn-wrap/example && yarn start --reset-cache`
    - Reinstall iOS pods to rerun codegen and integrate generated providers:
-     - `cd rn-wrapper-recipe/example/ios && rm -rf Pods Podfile.lock build && pod install`
+  - `cd rn-wrap/example/ios && rm -rf Pods Podfile.lock build && pod install`
    - Build and run iOS:
      - `cd .. && yarn ios`
 
@@ -427,7 +433,7 @@ Verification:
 If you encounter an error similar to:
 
 ```
-Error: While trying to resolve module `react-native-rn-wrapper-recipe` from file `/path/to/example/src/App.tsx`, 
+Error: While trying to resolve module `react-native-rn-wrap` from file `/path/to/example/src/App.tsx`, 
 the package `/path/to/package.json` was successfully found. However, this package itself specifies a 
 `main` module field that could not be resolved (`/path/to/lib/module/index.js`). 
 Indeed, none of these files exist.
@@ -663,7 +669,7 @@ Expected:
 
 If the error persists:
 - Ensure imports reference the local package, not a relative path or a different alias:
-  - `import { DocumentVerificationView } from 'react-native-rn-wrapper-recipe';`
+  - `import { DocumentVerificationView } from 'react-native-rn-wrap';`
 - Verify the Fabric component name matches across layers:
   - JS: `codegenNativeComponent<...>('DocumentVerificationView')`
   - Android: `DocumentVerificationViewManager.NAME = "DocumentVerificationView"`
