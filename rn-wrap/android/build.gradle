@@ -1,6 +1,6 @@
 buildscript {
   ext.getExtOrDefault = {name ->
-    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['RnWrapperRecipe_' + name]
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['RnWrap_' + name]
   }
 
   repositories {
@@ -26,7 +26,7 @@ apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
 
 def getExtOrIntegerDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["RnWrapperRecipe_" + name]).toInteger()
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["RnWrap_" + name]).toInteger()
 }
 
 android {
@@ -137,6 +137,6 @@ dependencies {
 
 react {
   jsRootDir = file("../src/")
-  libraryName = "RnWrapperRecipeView"
+  libraryName = "RnWrapView"
   codegenJavaPackageName = "com.rnwrap"
 }
