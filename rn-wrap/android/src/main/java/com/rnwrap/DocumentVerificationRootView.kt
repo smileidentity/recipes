@@ -11,6 +11,7 @@ import com.smileidentity.compose.DocumentVerification
 import com.smileidentity.models.AutoCapture
 import kotlin.time.Duration.Companion.seconds
 import com.smileidentity.results.DocumentVerificationResult
+import kotlinx.collections.immutable.ImmutableMap
 
 @Composable
 fun DocumentVerificationRootView(
@@ -29,7 +30,7 @@ fun DocumentVerificationRootView(
   allowGalleryUpload: Boolean,
   showInstructions: Boolean,
   useStrictMode: Boolean,
-  extraPartnerParams: kotlinx.collections.immutable.ImmutableMap<String, String>,
+  extraPartnerParams: ImmutableMap<String, String>,
   onResult: (DocumentVerificationResult) -> Unit,
   onError: (Throwable) -> Unit
 ) {
