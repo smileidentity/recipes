@@ -132,6 +132,23 @@ export default function App(): React.JSX.Element {
               onBack={() => setCurrentScreen('home')}
             />
             <DocumentVerificationView
+              countryCode="KE" // Required: country of issuance
+              documentType="NATIONAL_ID" // Optional: ID type code
+              captureBothSides={false} // Capture front & back
+              autoCaptureTimeout={15} // Seconds (defaults to 10)
+              autoCapture="ManualCaptureOnly" // 'AutoCapture' | 'AutoCaptureOnly' | 'ManualCaptureOnly'
+              idAspectRatio={1.6} // Optional custom aspect ratio
+              allowAgentMode={false}
+              allowGalleryUpload={true} // Allow picking from gallery
+              allowNewEnroll={false}
+              showInstructions={true} // Show instruction screens
+              showAttribution={true} // Show Smile ID attribution
+              useStrictMode={false}
+              skipApiSubmission={false}
+              extraPartnerParams={[
+                { key: 'demoKey', value: 'demoValue' },
+                { key: 'flow', value: 'document-verification' },
+              ]}
               onSuccess={(e) => {
                 const {
                   selfie,
