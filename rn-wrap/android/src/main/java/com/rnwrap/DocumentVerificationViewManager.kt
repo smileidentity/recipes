@@ -27,9 +27,7 @@ class DocumentVerificationViewManager: SimpleViewManager<DocumentVerificationVie
   // Generated interface setters (implemented manually so Compose recomposes)
   @ReactProp(name = "countryCode")
   override fun setCountryCode(view: DocumentVerificationView, value: String?) {
-    if (value != null) {
-      view.countryCode = value
-    }
+    view.countryCode = value ?: ""
   }
   @ReactProp(name = "userId")
   override fun setUserId(view: DocumentVerificationView, value: String?) { view.userId = value }
@@ -69,10 +67,15 @@ class DocumentVerificationViewManager: SimpleViewManager<DocumentVerificationVie
     }
     val builder = mutableMapOf<String, String>()
     for (i in 0 until value.size()) {
-      val map = value.getMap(i)
-      val k = map?.getString("key")
-      val v = map?.getString("value")
-      if (k != null && v != null) builder[k] = v
+      try {
+        val map = value.getMap(i)
+        val k = map?.getString("key")
+        val v = map?.getString("value")
+        if (k != null && v != null) builder[k] = v
+      } catch (e: Exception) {
+        // Skip invalid entries
+        continue
+      }
     }
     view.extraPartnerParams = persistentMapOf<String, String>().putAll(builder)
   }

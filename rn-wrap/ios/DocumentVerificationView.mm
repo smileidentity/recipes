@@ -159,9 +159,9 @@ return self;
 		if (_view.useStrictMode.boolValue != newViewProps.useStrictMode) { _view.useStrictMode = @(newViewProps.useStrictMode); needsUpdate = YES; }
 
 		// idAspectRatio: 0.0 used as sentinel for 'unset'
-		if (newViewProps.idAspectRatio != 0.0f) {
-			double v = (double)newViewProps.idAspectRatio;
-			if (_view.idAspectRatio == nil || fabs(_view.idAspectRatio.doubleValue - v) > 0.0001) { _view.idAspectRatio = @(v); needsUpdate = YES; }
+		if (newViewProps.idAspectRatio > 0.0f) {
+		    double v = (double)newViewProps.idAspectRatio;
+		    if (_view.idAspectRatio == nil || fabs(_view.idAspectRatio.doubleValue - v) > 0.0001) { _view.idAspectRatio = @(v); needsUpdate = YES; }
 		} else if (_view.idAspectRatio != nil) { _view.idAspectRatio = nil; needsUpdate = YES; }
 
 		if (_view.autoCaptureTimeout.intValue != newViewProps.autoCaptureTimeout) {
