@@ -26,7 +26,11 @@ class DocumentVerificationViewManager: SimpleViewManager<DocumentVerificationVie
 
   // Generated interface setters (implemented manually so Compose recomposes)
   @ReactProp(name = "countryCode")
-  override fun setCountryCode(view: DocumentVerificationView, value: String?) { value?.let { view.countryCode = it } }
+  override fun setCountryCode(view: DocumentVerificationView, value: String?) {
+    if (value != null) {
+      view.countryCode = value
+    }
+  }
   @ReactProp(name = "userId")
   override fun setUserId(view: DocumentVerificationView, value: String?) { view.userId = value }
   @ReactProp(name = "jobId")

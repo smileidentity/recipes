@@ -8,7 +8,7 @@ import SwiftUI
   @objc public var onError: ((NSString, NSString?) -> Void)?
 
   // Params mirrored from React props
-  @objc public var countryCode: NSString = "KE"
+  @objc public var countryCode: NSString = ""
   @objc public var userId: NSString? = nil
   @objc public var jobId: NSString? = nil
   @objc public var documentType: NSString? = nil

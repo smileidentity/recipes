@@ -3,7 +3,7 @@ import SmileID
 
 // Struct representing the full prop set coming from JS
 struct DocumentVerificationParams: Equatable {
-  var countryCode: String = "KE"
+  var countryCode: String = ""
   var userId: String? = nil
   var jobId: String? = nil
   var documentType: String? = nil

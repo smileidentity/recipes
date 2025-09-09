@@ -18,7 +18,7 @@ class DocumentVerificationView(context: Context) :
     context = context,
     shouldUseAndroidLayout = true
   ) {
-  var countryCode by mutableStateOf("KE")
+  var countryCode by mutableStateOf("")
   var userId by mutableStateOf<String?>(null)
   var jobId by mutableStateOf<String?>(null)
   var allowNewEnroll by mutableStateOf<Boolean?>(null)
