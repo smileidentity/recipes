@@ -57,29 +57,29 @@ import SwiftUI
      }
    }
   private func buildParams() -> DocumentVerificationParams {
-    var p = DocumentVerificationParams()
-    p.countryCode = countryCode as String
-    p.userId = userId as String?
-    p.jobId = jobId as String?
-    p.documentType = documentType as String?
-    p.captureBothSides = captureBothSides.boolValue
-    if let ratio = idAspectRatio?.doubleValue { p.idAspectRatio = ratio }
-    p.bypassSelfieCaptureWithFile = bypassSelfieCaptureWithFile as String?
-    p.autoCaptureTimeout = autoCaptureTimeout.intValue
-    p.autoCapture = autoCapture as String?
-    p.allowNewEnroll = allowNewEnroll.boolValue
-    p.allowAgentMode = allowAgentMode.boolValue
-    p.allowGalleryUpload = allowGalleryUpload.boolValue
-    p.showInstructions = showInstructions.boolValue
-    p.showAttribution = showAttribution.boolValue
-    p.skipApiSubmission = skipApiSubmission.boolValue
-    p.useStrictMode = useStrictMode.boolValue
+    var documentVerificationParams = DocumentVerificationParams()
+    documentVerificationParams.countryCode = countryCode as String
+    documentVerificationParams.userId = userId as String?
+    documentVerificationParams.jobId = jobId as String?
+    documentVerificationParams.documentType = documentType as String?
+    documentVerificationParams.captureBothSides = captureBothSides.boolValue
+    if let ratio = idAspectRatio?.doubleValue { documentVerificationParams.idAspectRatio = ratio }
+    documentVerificationParams.bypassSelfieCaptureWithFile = bypassSelfieCaptureWithFile as String?
+    documentVerificationParams.autoCaptureTimeout = autoCaptureTimeout.intValue
+    documentVerificationParams.autoCapture = autoCapture as String?
+    documentVerificationParams.allowNewEnroll = allowNewEnroll.boolValue
+    documentVerificationParams.allowAgentMode = allowAgentMode.boolValue
+    documentVerificationParams.allowGalleryUpload = allowGalleryUpload.boolValue
+    documentVerificationParams.showInstructions = showInstructions.boolValue
+    documentVerificationParams.showAttribution = showAttribution.boolValue
+    documentVerificationParams.skipApiSubmission = skipApiSubmission.boolValue
+    documentVerificationParams.useStrictMode = useStrictMode.boolValue
     if let arr = extraPartnerParams as? [[String: String]] {
       var map: [String: String] = [:]
       for entry in arr { if let k = entry["key"], let v = entry["value"] { map[k] = v } }
-      p.extraPartnerParams = map
+      documentVerificationParams.extraPartnerParams = map
     }
-    return p
+    return documentVerificationParams
   }
   // Rebuild the SwiftUI root view when any prop changes
   @objc public func updateParams() {
