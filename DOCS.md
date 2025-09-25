@@ -271,6 +271,213 @@ class RnWrapperRecipePackage : ReactPackage {
 }
 ```
 
+# iOS
+This section mirrors the Android walkthrough, showing how the SmileID iOS SDK screens are wrapped as React Native Fabric components using a SwiftUI host + ObjC++ glue + a lightweight provider UIView. The pattern keeps SwiftUI isolated, emits strongly‑typed Fabric events, and cleanly diffs prop updates.
+
+## 1) Add the SmileID iOS SDK (CocoaPods)
+
+Wire up SmileID, in the library podspec (`RnWrap.podspec`) so downstream apps automatically pull the SmileID dependency when they install your wrapper.
+
+The library’s podspec (located at `rn-wrap/RnWrap.podspec`) includes SmileID explicitly:
+
+```ruby
+require "json"
+
+package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+
+Pod::Spec.new do |s|
+  s.name         = "RnWrapperRecipe"
+  s.version      = package["version"]
+  s.summary      = package["description"]
+  s.homepage     = package["homepage"]
+  s.license      = package["license"]
+  s.authors      = package["author"]
+
+  s.platforms    = { :ios => min_ios_version_supported }
+  s.source       = { :git => "https://github.com/wangerekaharun/react-native-rn-wrap.git", :tag => "#{s.version}" }
+
+  s.source_files = "ios/**/*.{h,m,mm,cpp,swift}"
+  s.dependency "SmileID", "11.1.0"
+  s.private_header_files = "ios/**/*.h"
+
+  install_modules_dependencies(s)
+end
+```
+
+This wires SmileID once at the library level. Consumer apps only need to install your wrapper; CocoaPods will resolve SmileID automatically from the podspec. No duplicate `pod 'SmileID'` entry is required (and adding one is only necessary if they intentionally want to pin/override the version).
+
+When you change native iOS sources in the wrapper itself during development, repeat the Pod install inside the example (or test) app that pulls the local package.
+
+Then reinstall Pods with New Architecture enabled whenever native files change:
+
+```bash
+RCT_NEW_ARCH_ENABLED=1 bundle exec pod install --repo-update
+```
+
+Why this matters:
+- The SwiftUI screens exposed by SmileID are consumed by your wrapper; the pod provides them plus initialization APIs.
+- Re‑installing with `RCT_NEW_ARCH_ENABLED=1` regenerates Fabric component registration code so your new/changed components are recognized.
+
+## 2) Create the Fabric component shell (.h + .mm)
+
+For each screen (e.g. `DocumentVerificationView`, `SmartSelfieAuthenticationView`, `SmartSelfieEnrollmentView`) add:
+
+1. A header declaring a subclass of `RCTViewComponentView` (name EXACTLY matches the codegen component name used in TypeScript):
+   ```objc
+   // DocumentVerificationView.h
+   #import <React/RCTViewComponentView.h>
+   @interface DocumentVerificationView : RCTViewComponentView
+   @end
+   ```
+2. An ObjC++ implementation (`.mm`) that:
+   - Imports the generated C++ descriptors & event emitter headers (`#import <react/renderer/components/...>`)
+   - Imports the Swift bridging header (`RnWrap-Swift.h`) to access the provider
+   - Implements `+componentDescriptorProvider`
+   - Owns an instance of the Swift provider (`DocumentVerificationViewProvider`)
+   - In `init` sets `self.contentView = provider`
+   - Hooks provider callbacks (`onSuccess`, `onError`) and forwards them into the C++ event emitter by constructing the generated event structs.
+
+Why `.mm`? You need ObjC++ so that the file can talk to the C++ event emitter types produced by CodeGen while still interoperating with Objective‑C & Swift.
+
+Guard with `#if RCT_NEW_ARCH_ENABLED` so legacy builds skip the Fabric subclass if you ever disable the New Architecture.
+
+## 3) Implement the SwiftUI Root View (pure Swift)
+
+Each screen gets a `...RootView` SwiftUI struct (we deliberately avoid naming collisions with the ObjC class). Example snippet (simplified):
+
+```swift
+struct DocumentVerificationRootView: View, DocumentVerificationResultDelegate {
+  let params: DocumentVerificationParams
+  let onSuccess: (NSDictionary) -> Void
+  let onError: (String, String?) -> Void
+
+  var body: some View {
+    SmileID.documentVerificationScreen(
+      userId: params.userId ?? generateUserId(),
+      jobId: params.jobId ?? generateJobId(),
+      countryCode: params.countryCode,
+      documentType: params.documentType,
+      // ...remaining mapped options...
+      delegate: self
+    )
+  }
+
+  func didSucceed(selfie: URL, documentFrontImage: URL, documentBackImage: URL?, didSubmitDocumentVerificationJob: Bool) {
+    var payload: [String: Any] = [
+      "selfie": selfie.absoluteString,
+      "documentFrontFile": documentFrontImage.absoluteString,
+      "didSubmitDocumentVerificationJob": didSubmitDocumentVerificationJob
+    ]
+    if let documentBackImage { payload["documentBackFile"] = documentBackImage.absoluteString }
+    onSuccess(payload as NSDictionary)
+  }
+
+  func didError(error: Error) { onError(error.localizedDescription, nil) }
+}
+```
+
+Key points:
+- The delegate (`DocumentVerificationResultDelegate`) funnels native SmileID outcomes into closure properties aligning with JS event shapes.
+- We build a JSON‑safe dictionary at the edge; the `.mm` layer then converts that into the strongly typed Fabric event struct.
+
+## 4) Provider UIView (Swift) bridging SwiftUI ↔ Fabric
+
+For each screen we create a `...ViewProvider: UIView` that owns a `UIHostingController<RootView>`.
+
+Responsibilities:
+- Maintain Objective‑C visible properties (`@objc public var countryCode: NSString = ""`, booleans as `NSNumber`) that line up with the generated prop fields.
+- Lazily instantiate the `UIHostingController` in `layoutSubviews` (first layout pass) and pin it to edges.
+- Expose `onSuccess` / `onError` block properties consumed by the `.mm` glue.
+- Rebuild the `rootView` when props change (`updateParams()`), keeping SwiftUI state in sync without re-creating the hosting controller.
+
+Snippet (trimmed):
+```swift
+@objc public class DocumentVerificationViewProvider: UIView {
+  private var hostingController: UIHostingController<DocumentVerificationRootView>?
+  @objc public var onSuccess: ((NSDictionary) -> Void)?
+  @objc public var onError: ((NSString, NSString?) -> Void)?
+  @objc public var countryCode: NSString = ""
+  // ...other mirrored props...
+
+  public override func layoutSubviews() {
+    super.layoutSubviews(); setupView()
+  }
+
+  private func setupView() {
+    guard hostingController == nil else { return }
+    hostingController = UIHostingController(
+      rootView: DocumentVerificationRootView(
+        params: buildParams(),
+        onSuccess: { [weak self] in self?.onSuccess?($0) },
+        onError: { [weak self] msg, code in self?.onError?(msg as NSString, code as NSString?) }
+      )
+    )
+    // Pin, force light mode if desired, attach via React helper
+  }
+
+  @objc public func updateParams() {
+    guard let hc = hostingController else { return }
+    hc.rootView = DocumentVerificationRootView(
+      params: buildParams(),
+      onSuccess: { [weak self] in self?.onSuccess?($0) },
+      onError: { [weak self] msg, code in self?.onError?(msg as NSString, code as NSString?) }
+    )
+  }
+}
+```
+
+Why a provider and not mounting SwiftUI directly in the Fabric view? It decouples prop diff logic (ObjC++ side) from SwiftUI state and keeps the Fabric surface (the `RCTViewComponentView` subclass) minimal.
+
+## 5) Prop diffing & event emission (ObjC++ layer)
+
+Inside `DocumentVerificationView.mm` the `-updateProps:oldProps:` method:
+- Casts `Props` to the generated `DocumentVerificationViewProps` C++ struct
+- Diffs each field against previously stored values
+- Translates enum cases (e.g. `autoCapture`) to NSString tokens expected by Swift
+- Uses sentinel values (empty string / 0 / nil) to represent “unset” optional props
+- Calls `[provider updateParams]` only if something changed to avoid unnecessary SwiftUI re-renders
+
+Event flow (success): Swift delegate → provider `onSuccess(NSDictionary)` → captured block in `.mm` converts dictionary → builds `DocumentVerificationViewEventEmitter::OnSuccess` struct → `eventEmitter->onSuccess(event)` → JS listener prop.
+
+## 6) Additional screens (SmartSelfie Authentication & Enrollment)
+
+They follow the same pattern with smaller payloads. The SmartSelfie flows build a JSON string (already matching the codegen event field) and emit via `onSuccess` / `onError` string events from the provider.
+
+Why stringify? The codegen event spec uses a single `result` (string) field; encoding once in Swift avoids duplicate serialization on the JS side.
+
+## 7) Initialization native module (TurboModule interop)
+
+The initialization bridge (`SmileIDModule.h/.mm` + `SmileIDBridge.swift`) is already documented below (see: “SmileID native module: initialize/setCallbackUrl…”). It lives alongside the Fabric views but is independent—nothing in the Fabric components requires initialization until a screen is presented, yet performing it early (app start) avoids first‑screen latency and camera permission timing issues.
+
+Key points recap:
+- Always dispatch SDK setup to the main thread (the bridge does this) to satisfy UIKit + potential Sentry calls.
+- Provide fallbacks: `apiKey + config` → `config` → basic init; mirror the same contract on Android for parity.
+
+## 8) Naming & collision avoidance
+
+To prevent Swift/ObjC symbol collisions (and Hermes export issues):
+- ObjC Fabric class retains the concise name (`DocumentVerificationView`)
+- SwiftUI view adds a suffix (`DocumentVerificationRootView`)
+- Provider adds `Provider` suffix (`DocumentVerificationViewProvider`)
+
+This ensures codegen’s lookup (`NSClassFromString(@"DocumentVerificationView")`) succeeds while Swift types remain distinct.
+
+## 9) When to rebuild / clean
+
+After adding or renaming any of: `.h`, `.mm`, provider Swift file, root SwiftUI view:
+1. `yarn prepare` (rebuild JS + types)
+2. Clean Pods & reinstall with New Architecture flag
+3. Re-run the iOS build (`yarn ios` from the example)
+
+If events stop firing, verify `build/generated/ios/RCTThirdPartyComponentsProvider.mm` contains entries for each Fabric component name.
+
+## 10) Summary (iOS wrapping pipeline)
+
+TS Spec (codegenNativeComponent) → CodeGen C++ headers → ObjC++ Fabric subclass (.mm) ↔ Provider UIView (Swift) ↔ SwiftUI RootView (SmileID SDK screen + delegate) → Provider blocks → ObjC++ event emitter → JS event handlers.
+
+This layering keeps responsibilities clear, isolates SwiftUI, and minimizes C++/ObjC touchpoints to just prop diff + event forwarding.
+
+
 ## SmileID native module: initialize/setCallbackUrl from JS (New Architecture)
 
 This section documents how the wrapper exposes SmileID iOS SDK static methods to JavaScript and the threading fix that avoids a Main Thread Checker crash.
