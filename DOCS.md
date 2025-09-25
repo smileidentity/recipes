@@ -1,9 +1,3 @@
-If you encounter an error similar to:
-Error: While trying to resolve module `react-native-rn-wrap` from file `/path/to/example/src/App.tsx`, 
- Ensure imports reference the local package, not a relative path or a different alias:
-Error: While trying to resolve module `react-native-rn-wrap` from file `/path/to/example/src/App.tsx`, 
- Ensure imports reference the local package, not a relative path or a different alias:
-  - `import { DocumentVerificationView } from 'react-native-rn-wrap';`
 # Creating Your Own React Native Wrapper for SmileID SDKs
 
 This doc provides a guide on how to create your own React Native wrapper for the SmileID SDKs. This is useful if you want to integrate the SmileID functionality into your React Native application.
@@ -13,7 +7,7 @@ If you're using Expo, we already have the [react-native-expo](https://github.com
 This guide is for developers on the New Architecture who want to create a custom wrapper for the SmileID SDKs.
 
 
-# Overview
+## Overview
 
 In the old architecture of React Native, you would have used [Native Modules](https://reactnative.dev/docs/legacy/native-modules-intro) & Native Components to access native functionality. However, in the New Architecture, you will use [Turbo Modules](https://reactnative.dev/docs/turbo-modules) and [Fabric Native Components](https://reactnative.dev/docs/fabric) to create your own wrapper. Turbo Modules are optimized for native module management, and Fabric allows for faster, more flexible rendering of native components.
 
@@ -50,7 +44,7 @@ Cons
 Bottom line: Use a library for your Fabric components—particularly on iOS—so you get predictable bridging and stable JS events without fragile app-level tweaks.
 
 
-**Implementation Structure (rn-wrap)**:
+## Implementation Structure (rn-wrap)
 ```
 rn-wrap/
 ├── package.json
@@ -78,7 +72,7 @@ rn-wrap/
 │   └── src/App.tsx
 ```
 
-# Getting Started
+## Getting Started
 
 We scaffold the library with create-react-native-library, an official CLI for generating React Native library packages. It supports Fabric view templates and lets you pin the React Native version used in the example app and configs.
 
@@ -91,7 +85,7 @@ During the interactive prompts, pick Fabric view (integration for native views t
 ![create-react-native-library prompts — choose “Fabric view”](./Screenshot%202025-08-09%20at%2010.10.51.png)
 
 
-## Try it
+### Try It
 
 Run the included example to verify the wrapper and events end-to-end.
 
@@ -114,10 +108,10 @@ yarn ios
 
 If iOS fails after native changes, re-run pod install with RCT_NEW_ARCH_ENABLED=1.
 
-# Android
+## Android: Wrapping Native SmileID Views
 This section shows how the Android pieces fit together when wrapping SmileID screens with React Native Fabric using a Compose host.
 
-## 1) Add SmileID SDK and set up Compose
+### Step 1: Add SmileID SDK and Set Up Compose
 
 - Add the SmileID Android SDK to your module with the exact versions used by this template:
 
@@ -214,7 +208,7 @@ Why this matters:
 - jvmTarget = 17 aligns Kotlin bytecode with your Java toolchain (AGP 8.x and RN 0.78 use Java 17). This prevents class version mismatches and runtime linkage issues.
 - -Xskip-metadata-version-check relaxes Kotlin’s metadata compatibility check. It’s useful when a transitive library (e.g., SmileID SDK compiled with Kotlin 2.2.x) is consumed under a forced Kotlin 2.0.21 toolchain. Without it, you may see errors like “kotlin.Metadata version is newer than supported”. Keep this flag while your dependency graph mixes Kotlin compiler versions.
 
-## 2) Create a Fabric view that hosts Compose
+### Step 2: Create a Fabric View That Hosts Compose
 
 Extend the provided base host `SmileIDComposeHostView`, which handles lifecycle, optional Android-side layout bridging, and direct-event dispatch to JS.
 
@@ -244,7 +238,7 @@ Tips:
 - Set `shouldUseAndroidLayout = true` if your view needs a measure/layout pass after `requestLayout()` under RN (common with camera content). See Troubleshooting: [View doesn’t resize or re-layout under RN](#ts-android-requestlayout).
 - The base host ensures a proper ViewModelStoreOwner and disposes composition on detach, which stabilizes CameraX and avoids retained state across navigations.
 
-## 3) Create a View Manager
+### Step 3: Create a View Manager
 
 Register the view with React Native via a SimpleViewManager (Fabric-compatible). The `getName()` must match the component name used in your TS spec.
 
@@ -259,7 +253,7 @@ class SmartSelfieAuthenticationViewManager : SimpleViewManager<SmartSelfieAuthen
 
 Repeat per SmileID screen (e.g., Enrollment, Document Verification).
 
-## 4) Add the manager to your Package
+### Step 4: Add the Manager to Your Package
 
 ```kotlin
 class RnWrapperRecipePackage : ReactPackage {
@@ -271,10 +265,10 @@ class RnWrapperRecipePackage : ReactPackage {
 }
 ```
 
-# iOS: Wrapping Native SmileID Views
+## iOS: Wrapping Native SmileID Views
 This section mirrors the Android walkthrough, showing how the SmileID iOS SDK screens are wrapped as React Native Fabric components using a SwiftUI host + ObjC++ glue + a lightweight provider UIView. The pattern keeps SwiftUI isolated, emits strongly‑typed Fabric events, and cleanly diffs prop updates.
 
-## 1) Add the SmileID iOS SDK (CocoaPods)
+### Step 1: Add the SmileID iOS SDK (CocoaPods)
 
 Wire up SmileID, in the library podspec (`RnWrap.podspec`) so downstream apps automatically pull the SmileID dependency when they install your wrapper.
 
@@ -318,7 +312,7 @@ Why this matters:
 - The SwiftUI screens exposed by SmileID are consumed by your wrapper; the pod provides them plus initialization APIs.
 - Re‑installing with `RCT_NEW_ARCH_ENABLED=1` regenerates Fabric component registration code so your new/changed components are recognized.
 
-## 2) Create the Fabric component shell (.h + .mm)
+### Step 2: Create the Fabric Component Shell (.h + .mm)
 
 For each screen (e.g. `DocumentVerificationView`, `SmartSelfieAuthenticationView`, `SmartSelfieEnrollmentView`) add:
 
@@ -341,7 +335,7 @@ Why `.mm`? You need ObjC++ so that the file can talk to the C++ event emitter ty
 
 Guard with `#if RCT_NEW_ARCH_ENABLED` so legacy builds skip the Fabric subclass if you ever disable the New Architecture.
 
-## 3) Implement the SwiftUI Root View (pure Swift)
+### Step 3: Implement the SwiftUI Root View (Pure Swift)
 
 Each screen gets a `...RootView` SwiftUI struct (we deliberately avoid naming collisions with the ObjC class). Example snippet (simplified):
 
@@ -380,7 +374,7 @@ Key points:
 - The delegate (`DocumentVerificationResultDelegate`) funnels native SmileID outcomes into closure properties aligning with JS event shapes.
 - We build a JSON‑safe dictionary at the edge; the `.mm` layer then converts that into the strongly typed Fabric event struct.
 
-## 4) Provider UIView (Swift) bridging SwiftUI ↔ Fabric
+### Step 4: Provider UIView (Swift) Bridging SwiftUI ↔ Fabric
 
 For each screen we create a `...ViewProvider: UIView` that owns a `UIHostingController<RootView>`.
 
@@ -429,7 +423,7 @@ Snippet (trimmed):
 
 Why a provider and not mounting SwiftUI directly in the Fabric view? It decouples prop diff logic (ObjC++ side) from SwiftUI state and keeps the Fabric surface (the `RCTViewComponentView` subclass) minimal.
 
-## 5) Prop diffing & event emission (ObjC++ layer)
+### Step 5: Prop Diffing & Event Emission (ObjC++ Layer)
 
 Inside `DocumentVerificationView.mm` the `-updateProps:oldProps:` method:
 - Casts `Props` to the generated `DocumentVerificationViewProps` C++ struct
@@ -441,7 +435,7 @@ Inside `DocumentVerificationView.mm` the `-updateProps:oldProps:` method:
 
 Event flow (success): Swift delegate → provider `onSuccess(NSDictionary)` → captured block in `.mm` converts dictionary → builds `DocumentVerificationViewEventEmitter::OnSuccess` struct → `eventEmitter->onSuccess(event)` → JS listener prop.
 
-## 6) Additional screens (SmartSelfie Authentication & Enrollment)
+### Step 6: Additional Screens (SmartSelfie Authentication & Enrollment)
 
 They follow the same pattern with smaller payloads. The SmartSelfie flows build a JSON string (already matching the codegen event field) and emit via `onSuccess` / `onError` string events from the provider.
 
@@ -449,7 +443,7 @@ Why stringify? The codegen event spec uses a single `result` (string) field; enc
 
 If you later expand events to structured multi‑field payloads, prefer mirroring the Document Verification pattern (NSDictionary → C++ struct) for zero JSON (de)serialization overhead.
 
-## 7) Initialization native module (TurboModule interop)
+### Step 7: Initialization Native Module (TurboModule Interop)
 
 The initialization bridge (`SmileIDModule.h/.mm` + `SmileIDBridge.swift`) is already documented below (see: “SmileID native module: initialize/setCallbackUrl…”). It lives alongside the Fabric views but is independent—nothing in the Fabric components requires initialization until a screen is presented, yet performing it early (app start) avoids first‑screen latency and camera permission timing issues.
 
@@ -458,7 +452,7 @@ Key points recap:
 - Provide fallbacks: `apiKey + config` → `config` → basic init; mirror the same contract on Android for parity.
  - Set wrapper metadata (`SmileID.setWrapperInfo`) before first screen to surface wrapper versioning in analytics / diagnostics.
 
-## 8) Naming & collision avoidance
+### Step 8: Naming & Collision Avoidance
 
 To prevent Swift/ObjC symbol collisions (and Hermes export issues):
 - ObjC Fabric class retains the concise name (`DocumentVerificationView`)
@@ -467,7 +461,7 @@ To prevent Swift/ObjC symbol collisions (and Hermes export issues):
 
 This ensures codegen’s lookup (`NSClassFromString(@"DocumentVerificationView")`) succeeds while Swift types remain distinct.
 
-## 9) When to rebuild / clean
+### Step 9: When to Rebuild / Clean
 
 After adding or renaming any of: `.h`, `.mm`, provider Swift file, root SwiftUI view:
 1. `yarn prepare` (rebuild JS + types)
@@ -477,14 +471,14 @@ After adding or renaming any of: `.h`, `.mm`, provider Swift file, root SwiftUI 
 If events stop firing, verify `build/generated/ios/RCTThirdPartyComponentsProvider.mm` contains entries for each Fabric component name.
 Also confirm the generated file imports haven’t been orphaned; a missing entry usually means CodeGen didn’t see your TypeScript spec (run `yarn prepare` then reinstall Pods). If the SwiftUI view shows visually but no JS events arrive, re‑check the provider callback wiring in the `.mm` file (the weak self capture + emitter dispatch pattern) against the Callstack article’s recommended lifecycle (ensure no early deallocation).
 
-## 10) Summary (iOS wrapping pipeline)
+### Summary: iOS Wrapping Pipeline
 
 TS Spec (codegenNativeComponent) → CodeGen C++ headers → ObjC++ Fabric subclass (.mm) ↔ Provider UIView (Swift) ↔ SwiftUI RootView (SmileID SDK screen + delegate) → Provider blocks → ObjC++ event emitter → JS event handlers.
 
 This layering keeps responsibilities clear, isolates SwiftUI, and minimizes C++/ObjC touchpoints to just prop diff + event forwarding.
 
 
-## SmileID native module: initialize/setCallbackUrl from JS (New Architecture)
+## iOS: initialize / setCallbackUrl (New Architecture)
 
 This section documents how the wrapper exposes SmileID iOS SDK static methods to JavaScript and the threading fix that avoids a Main Thread Checker crash.
 
@@ -550,7 +544,7 @@ If you see header/module import errors, a clean pod install (with New Architectu
 - `SmileConfig` must be provided in snake_case; it’s JSON‑encoded on the Objective‑C side and decoded into Swift’s `Config`.
 - Invalid or missing `config` simply falls back to the lighter initialization paths described above.
 
-## Android native module: initialize/setCallbackUrl from JS (New Architecture)
+## Android: initialize / setCallbackUrl (New Architecture)
 
 Android mirrors the iOS approach with a Kotlin native module exposing `initialize` and `setCallbackUrl` to JS and ensuring calls execute on the UI thread.
 
