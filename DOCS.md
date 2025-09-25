@@ -100,7 +100,7 @@ Run the included example to verify the wrapper and events end-to-end.
 yarn install
 yarn prepare
 
-# Android
+# Android: Wrapping Native SmileID Views
 cd rn-wrap/example
 yarn android
 
@@ -271,7 +271,7 @@ class RnWrapperRecipePackage : ReactPackage {
 }
 ```
 
-# iOS
+# iOS: Wrapping Native SmileID Views
 This section mirrors the Android walkthrough, showing how the SmileID iOS SDK screens are wrapped as React Native Fabric components using a SwiftUI host + ObjC++ glue + a lightweight provider UIView. The pattern keeps SwiftUI isolated, emits strongly‑typed Fabric events, and cleanly diffs prop updates.
 
 ## 1) Add the SmileID iOS SDK (CocoaPods)
