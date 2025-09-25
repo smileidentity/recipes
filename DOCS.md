@@ -9,9 +9,23 @@ This guide is for developers on the New Architecture who want to create a custom
 
 ## Overview
 
-In the old architecture of React Native, you would have used [Native Modules](https://reactnative.dev/docs/legacy/native-modules-intro) & Native Components to access native functionality. However, in the New Architecture, you will use [Turbo Modules](https://reactnative.dev/docs/turbo-modules) and [Fabric Native Components](https://reactnative.dev/docs/fabric) to create your own wrapper. Turbo Modules are optimized for native module management, and Fabric allows for faster, more flexible rendering of native components.
+This guide targets React Native New Architecture (Fabric + TurboModules) and shows how to build a production‑quality wrapper around the SmileID native SDKs.
 
-## Why the library approach is recommended
+Key sections:
+1. [Why the Library Approach](#why-library) 
+2. [Getting Started](#getting-started) 
+3. [Android: Wrapping Native SmileID Views](#android-wrapping)
+4. [iOS: Wrapping Native SmileID Views](#ios-wrapping)
+5. [Passing Props and Events](#passing-props)
+6. [Initialize / Set Callback URL (iOS)](#init-ios)
+7. [Initialize / Set Callback URL (Android)](#init-android)
+8. [Troubleshooting](#troubleshooting)
+9. [Resources](#resources)
+
+In the legacy architecture you would rely on classic Native Modules & UI Components; in the New Architecture you should lean on [Turbo Modules](https://reactnative.dev/docs/turbo-modules) for imperative/native APIs and [Fabric Native Components](https://reactnative.dev/docs/fabric) for view embedding. Fabric provides faster, more predictable rendering and granular prop/event handling.
+
+## 1. Why the Library Approach
+<a id="why-library"></a>
 
 We initially embedded Fabric components directly inside the app target and ran into instability—especially on iOS—due to bridging and codegen. Packaging the components as a library eliminated those issues and is the recommended path for production.
 
@@ -44,18 +58,18 @@ Cons
 Bottom line: Use a library for your Fabric components—particularly on iOS—so you get predictable bridging and stable JS events without fragile app-level tweaks.
 
 
-## Implementation Structure (rn-wrap)
+### 1.1 Implementation Structure (rn-wrap)
 ```
 rn-wrap/
 ├── package.json
 ├── src/
 │   ├── index.tsx
-│   ├── RnWrapperRecipeViewNativeComponent.ts
+│   ├── RnWrapViewNativeComponent.ts
 │   ├── DocumentVerificationViewNativeComponent.ts
 │   └── __tests__/index.test.tsx
 ├── ios/
-│   ├── RnWrapperRecipeView.h
-│   ├── RnWrapperRecipeView.mm
+│   ├── RnWrapView.h
+│   ├── RnWrapView.mm
 │   ├── DocumentVerificationView.h
 │   ├── DocumentVerificationView.mm
 │   ├── DocumentVerificationViewProvider.swift
@@ -63,7 +77,7 @@ rn-wrap/
 ├── android/
 │   ├── build.gradle
 │   ├── gradle.properties
-│   └── src/main/java/com/rnwrapperrecipe/
+│   └── src/main/java/com/rnwrap/
 │       ├── … (Fabric view classes, managers, native module)
 │       └── …
 ├── example/
@@ -72,7 +86,8 @@ rn-wrap/
 │   └── src/App.tsx
 ```
 
-## Getting Started
+## 2. Getting Started
+<a id="getting-started"></a>
 
 We scaffold the library with create-react-native-library, an official CLI for generating React Native library packages. It supports Fabric view templates and lets you pin the React Native version used in the example app and configs.
 
@@ -85,7 +100,7 @@ During the interactive prompts, pick Fabric view (integration for native views t
 ![create-react-native-library prompts — choose “Fabric view”](./Screenshot%202025-08-09%20at%2010.10.51.png)
 
 
-### Try It
+### 2.1 Try It
 
 Run the included example to verify the wrapper and events end-to-end.
 
@@ -108,10 +123,11 @@ yarn ios
 
 If iOS fails after native changes, re-run pod install with RCT_NEW_ARCH_ENABLED=1.
 
-## Android: Wrapping Native SmileID Views
+## 3. Android: Wrapping Native SmileID Views
+<a id="android-wrapping"></a>
 This section shows how the Android pieces fit together when wrapping SmileID screens with React Native Fabric using a Compose host.
 
-### Step 1: Add SmileID SDK and Set Up Compose
+### 3.1 Add SmileID SDK and Set Up Compose
 
 - Add the SmileID Android SDK to your module with the exact versions used by this template:
 
@@ -208,7 +224,7 @@ Why this matters:
 - jvmTarget = 17 aligns Kotlin bytecode with your Java toolchain (AGP 8.x and RN 0.78 use Java 17). This prevents class version mismatches and runtime linkage issues.
 - -Xskip-metadata-version-check relaxes Kotlin’s metadata compatibility check. It’s useful when a transitive library (e.g., SmileID SDK compiled with Kotlin 2.2.x) is consumed under a forced Kotlin 2.0.21 toolchain. Without it, you may see errors like “kotlin.Metadata version is newer than supported”. Keep this flag while your dependency graph mixes Kotlin compiler versions.
 
-### Step 2: Create a Fabric View That Hosts Compose
+### 3.2 Create a Fabric View That Hosts Compose
 
 Extend the provided base host `SmileIDComposeHostView`, which handles lifecycle, optional Android-side layout bridging, and direct-event dispatch to JS.
 
@@ -238,7 +254,7 @@ Tips:
 - Set `shouldUseAndroidLayout = true` if your view needs a measure/layout pass after `requestLayout()` under RN (common with camera content). See Troubleshooting: [View doesn’t resize or re-layout under RN](#ts-android-requestlayout).
 - The base host ensures a proper ViewModelStoreOwner and disposes composition on detach, which stabilizes CameraX and avoids retained state across navigations.
 
-### Step 3: Create a View Manager
+### 3.3 Create a View Manager
 
 Register the view with React Native via a SimpleViewManager (Fabric-compatible). The `getName()` must match the component name used in your TS spec.
 
@@ -253,7 +269,7 @@ class SmartSelfieAuthenticationViewManager : SimpleViewManager<SmartSelfieAuthen
 
 Repeat per SmileID screen (e.g., Enrollment, Document Verification).
 
-### Step 4: Add the Manager to Your Package
+### 3.4 Add the Manager to Your Package
 
 ```kotlin
 class RnWrapperRecipePackage : ReactPackage {
@@ -265,10 +281,11 @@ class RnWrapperRecipePackage : ReactPackage {
 }
 ```
 
-## iOS: Wrapping Native SmileID Views
+## 4. iOS: Wrapping Native SmileID Views
+<a id="ios-wrapping"></a>
 This section mirrors the Android walkthrough, showing how the SmileID iOS SDK screens are wrapped as React Native Fabric components using a SwiftUI host + ObjC++ glue + a lightweight provider UIView. The pattern keeps SwiftUI isolated, emits strongly‑typed Fabric events, and cleanly diffs prop updates.
 
-### Step 1: Add the SmileID iOS SDK (CocoaPods)
+### 4.1 Add the SmileID iOS SDK (CocoaPods)
 
 Wire up SmileID, in the library podspec (`RnWrap.podspec`) so downstream apps automatically pull the SmileID dependency when they install your wrapper.
 
@@ -312,7 +329,7 @@ Why this matters:
 - The SwiftUI screens exposed by SmileID are consumed by your wrapper; the pod provides them plus initialization APIs.
 - Re‑installing with `RCT_NEW_ARCH_ENABLED=1` regenerates Fabric component registration code so your new/changed components are recognized.
 
-### Step 2: Create the Fabric Component Shell (.h + .mm)
+### 4.2 Create the Fabric Component Shell (.h + .mm)
 
 For each screen (e.g. `DocumentVerificationView`, `SmartSelfieAuthenticationView`, `SmartSelfieEnrollmentView`) add:
 
@@ -335,7 +352,7 @@ Why `.mm`? You need ObjC++ so that the file can talk to the C++ event emitter ty
 
 Guard with `#if RCT_NEW_ARCH_ENABLED` so legacy builds skip the Fabric subclass if you ever disable the New Architecture.
 
-### Step 3: Implement the SwiftUI Root View (Pure Swift)
+### 4.3 Implement the SwiftUI Root View (Pure Swift)
 
 Each screen gets a `...RootView` SwiftUI struct (we deliberately avoid naming collisions with the ObjC class). Example snippet (simplified):
 
@@ -374,7 +391,7 @@ Key points:
 - The delegate (`DocumentVerificationResultDelegate`) funnels native SmileID outcomes into closure properties aligning with JS event shapes.
 - We build a JSON‑safe dictionary at the edge; the `.mm` layer then converts that into the strongly typed Fabric event struct.
 
-### Step 4: Provider UIView (Swift) Bridging SwiftUI ↔ Fabric
+### 4.4 Provider UIView (Swift) Bridging SwiftUI ↔ Fabric
 
 For each screen we create a `...ViewProvider: UIView` that owns a `UIHostingController<RootView>`.
 
@@ -423,7 +440,7 @@ Snippet (trimmed):
 
 Why a provider and not mounting SwiftUI directly in the Fabric view? It decouples prop diff logic (ObjC++ side) from SwiftUI state and keeps the Fabric surface (the `RCTViewComponentView` subclass) minimal.
 
-### Step 5: Prop Diffing & Event Emission (ObjC++ Layer)
+### 4.5 Prop Diffing & Event Emission (ObjC++ Layer)
 
 Inside `DocumentVerificationView.mm` the `-updateProps:oldProps:` method:
 - Casts `Props` to the generated `DocumentVerificationViewProps` C++ struct
@@ -435,7 +452,7 @@ Inside `DocumentVerificationView.mm` the `-updateProps:oldProps:` method:
 
 Event flow (success): Swift delegate → provider `onSuccess(NSDictionary)` → captured block in `.mm` converts dictionary → builds `DocumentVerificationViewEventEmitter::OnSuccess` struct → `eventEmitter->onSuccess(event)` → JS listener prop.
 
-### Step 6: Additional Screens (SmartSelfie Authentication & Enrollment)
+### 4.6 Additional Screens (SmartSelfie Authentication & Enrollment)
 
 They follow the same pattern with smaller payloads. The SmartSelfie flows build a JSON string (already matching the codegen event field) and emit via `onSuccess` / `onError` string events from the provider.
 
@@ -443,16 +460,16 @@ Why stringify? The codegen event spec uses a single `result` (string) field; enc
 
 If you later expand events to structured multi‑field payloads, prefer mirroring the Document Verification pattern (NSDictionary → C++ struct) for zero JSON (de)serialization overhead.
 
-### Step 7: Initialization Native Module (TurboModule Interop)
+### 4.7 Initialization Native Module (TurboModule Interop)
 
-The initialization bridge (`SmileIDModule.h/.mm` + `SmileIDBridge.swift`) is already documented below (see: “SmileID native module: initialize/setCallbackUrl…”). It lives alongside the Fabric views but is independent—nothing in the Fabric components requires initialization until a screen is presented, yet performing it early (app start) avoids first‑screen latency and camera permission timing issues.
+The initialization bridge (`SmileIDModule.h/.mm` + `SmileIDBridge.swift`) is already documented below (see Section 6: Initialize / Set Callback URL (iOS) and Section 7: Initialize / Set Callback URL (Android)). It lives alongside the Fabric views but is independent—nothing in the Fabric components requires initialization until a screen is presented, yet performing it early (app start) avoids first‑screen latency and camera permission timing issues.
 
 Key points recap:
 - Always dispatch SDK setup to the main thread (the bridge does this) to satisfy UIKit + potential Sentry calls.
 - Provide fallbacks: `apiKey + config` → `config` → basic init; mirror the same contract on Android for parity.
  - Set wrapper metadata (`SmileID.setWrapperInfo`) before first screen to surface wrapper versioning in analytics / diagnostics.
 
-### Step 8: Naming & Collision Avoidance
+### 4.8 Naming & Collision Avoidance
 
 To prevent Swift/ObjC symbol collisions (and Hermes export issues):
 - ObjC Fabric class retains the concise name (`DocumentVerificationView`)
@@ -461,7 +478,7 @@ To prevent Swift/ObjC symbol collisions (and Hermes export issues):
 
 This ensures codegen’s lookup (`NSClassFromString(@"DocumentVerificationView")`) succeeds while Swift types remain distinct.
 
-### Step 9: When to Rebuild / Clean
+### 4.9 When to Rebuild / Clean
 
 After adding or renaming any of: `.h`, `.mm`, provider Swift file, root SwiftUI view:
 1. `yarn prepare` (rebuild JS + types)
@@ -471,23 +488,141 @@ After adding or renaming any of: `.h`, `.mm`, provider Swift file, root SwiftUI 
 If events stop firing, verify `build/generated/ios/RCTThirdPartyComponentsProvider.mm` contains entries for each Fabric component name.
 Also confirm the generated file imports haven’t been orphaned; a missing entry usually means CodeGen didn’t see your TypeScript spec (run `yarn prepare` then reinstall Pods). If the SwiftUI view shows visually but no JS events arrive, re‑check the provider callback wiring in the `.mm` file (the weak self capture + emitter dispatch pattern) against the Callstack article’s recommended lifecycle (ensure no early deallocation).
 
-### Summary: iOS Wrapping Pipeline
+## 5. Passing Props and Events
+<a id="passing-props"></a>
 
-TS Spec (codegenNativeComponent) → CodeGen C++ headers → ObjC++ Fabric subclass (.mm) ↔ Provider UIView (Swift) ↔ SwiftUI RootView (SmileID SDK screen + delegate) → Provider blocks → ObjC++ event emitter → JS event handlers.
+This section details how props flow from JS through the Fabric layer into the SmileID SDKs, and how events flow back to JS.
 
-This layering keeps responsibilities clear, isolates SwiftUI, and minimizes C++/ObjC touchpoints to just prop diff + event forwarding.
+### 5.1 Example Usage (from example app)
+
+```tsx
+<DocumentVerificationView
+  countryCode="KE"
+  documentType="NATIONAL_ID"
+  captureBothSides={false}
+  autoCaptureTimeout={15}
+  autoCapture="ManualCaptureOnly"
+  idAspectRatio={1.6}
+  allowAgentMode={false}
+  allowGalleryUpload={true}
+  allowNewEnroll={false}
+  showInstructions={true}
+  showAttribution={true}
+  useStrictMode={false}
+  skipApiSubmission={false}
+  extraPartnerParams={[
+    { key: 'demoKey', value: 'demoValue' },
+    { key: 'flow', value: 'document-verification' },
+  ]}
+  onSuccess={() => {}}
+  onError={() => {}}
+  style={styles.nativeView}
+/>
+```
+
+### 5.2 Source of Truth (TypeScript Spec)
+File: `src/DocumentVerificationViewNativeComponent.ts` defines a flat prop interface. Flat matters: Fabric generates one setter per field → granular updates, no diffing of nested objects.
+
+Key design decisions:
+* Optional props use `?` so absence is distinguishable from falsy values.
+* `autoCapture` is a string union (no TS enum) because codegen does not handle enums directly for component props.
+* Events use `DirectEventHandler` so they are dispatched as Fabric direct events (no bubbling overhead).
+
+### 5.3 Android Prop Flow (JS → SmileID)
+Files: `DocumentVerificationViewManager.kt`, `DocumentVerificationView.kt`, `DocumentVerificationRootView.kt`.
+
+Pipeline per prop:
+`JS prop` → generated delegate calls `@ReactProp` → setter writes a `mutableStateOf` field → recomposition → `Content()` maps state to parameters → `DocumentVerificationRootView` → `SmileID.DocumentVerification`.
+
+Note: The interface (method signatures) for these setters and the delegate wiring are generated by Fabric CodeGen from the TypeScript spec (`DocumentVerificationViewManagerInterface`). You provide only the method bodies (assigning to `mutableStateOf`)—adding or renaming a prop in the spec regenerates the corresponding setter contract automatically.
+
+Prop mapping table:
+| Prop | Setter (ViewManager) | State Var Type | Compose Mapping / Default | Final SDK Param | Notes |
+|------|----------------------|----------------|---------------------------|-----------------|-------|
+| countryCode | `setCountryCode` | `String` | passed directly | `countryCode` | Required (must not be empty) |
+| documentType | `setDocumentType` | `String?` | direct | `documentType` | Omitted when null |
+| captureBothSides | `setCaptureBothSides` | `Boolean?` | `captureBothSides ?: true` | `captureBothSides` | Default true |
+| autoCaptureTimeout | `setAutoCaptureTimeout` | `Int?` | `autoCaptureTimeout ?: 10` | `autoCaptureTimeout.seconds` | Seconds to Kotlin `Duration` |
+| autoCapture | `setAutoCapture` | `String?` | `when(autoCapture){..}` | `autoCapture` enum | Fallback AutoCapture |
+| idAspectRatio | `setIdAspectRatio` | `Float?` | direct | `idAspectRatio` | Omitted if null |
+| allowAgentMode | `setAllowAgentMode` | `Boolean?` | `?: false` | `allowAgentMode` | Default false |
+| allowGalleryUpload | `setAllowGalleryUpload` | `Boolean?` | `?: false` | `allowGalleryUpload` | Default false |
+| allowNewEnroll | `setAllowNewEnroll` | `Boolean?` | `?: false` | `allowNewEnroll` | Default false |
+| showInstructions | `setShowInstructions` | `Boolean?` | `?: true` | `showInstructions` | Default true |
+| showAttribution | `setShowAttribution` | `Boolean?` | `?: true` | `showAttribution` | Default true |
+| useStrictMode | `setUseStrictMode` | `Boolean?` | `?: false` | `useStrictMode` | Default false |
+| skipApiSubmission | `setSkipApiSubmission` | `Boolean?` | (Currently NOT forwarded) | (N/A) | Follow‑up: add to Compose + SDK if needed |
+| bypassSelfieCaptureWithFile | `setBypassSelfieCaptureWithFile` | `String?` | `File(path)` or null | `bypassSelfieCaptureWithFile` | Allows bypassing live selfie |
+| userId | `setUserId` | `String?` | `?: randomUserId()` | `userId` | Generated if absent |
+| jobId | `setJobId` | `String?` | `?: randomJobId()` | `jobId` | Generated if absent |
+| extraPartnerParams | `setExtraPartnerParams` | ImmutableMap<String,String> | direct | `extraPartnerParams` | Built from JS array |
+
+Why state objects: Each `mutableStateOf` is the invalidation boundary—Compose handles diffing; no manual compare logic required.
+
+### 5.4 iOS Prop Flow (JS → SmileID)
+Files: `DocumentVerificationView.mm`, `DocumentVerificationViewProvider.swift`, `DocumentVerificationView.swift`.
+
+Pipeline per prop:
+`JS prop` → generated C++ `DocumentVerificationViewProps` → `updateProps` (Objective‑C++) diffs → Provider Objective‑C property values mutate → `updateParams()` rebuilds SwiftUI root with new `DocumentVerificationParams` → `SmileID.documentVerificationScreen`.
+
+Diff strategy (explicit, no reflection): compare old vs new, set `needsUpdate` if changed, call `updateParams` once. This avoids unnecessary SwiftUI root reconstructions.
+
+Prop mapping table:
+| Prop | C++ Field | Diff Code Pattern | Provider Property | Params Field | Default Location |
+|------|-----------|-------------------|-------------------|-------------|------------------|
+| countryCode | `countryCode` | direct string compare | `NSString*` | `countryCode` | Must be supplied |
+| documentType | `documentType` | `assignStringIfChanged` | `NSString*` | `documentType` | Nil if empty/absent |
+| captureBothSides | `captureBothSides` | boolean compare | `NSNumber` | `captureBothSides` | Provider init = true |
+| autoCaptureTimeout | `autoCaptureTimeout` | int compare | `NSNumber` | `autoCaptureTimeout` | Provider init = 10 |
+| autoCapture | `autoCapture` enum | switch → token | `NSString*` | raw string passed → enum helper | Fallback AutoCapture |
+| idAspectRatio | `idAspectRatio` | sentinel (≤0 => nil) | `NSNumber*` | `idAspectRatio` | Nil if unset |
+| allowAgentMode | field | boolean compare | `NSNumber` | `allowAgentMode` | Provider init false |
+| allowGalleryUpload | field | boolean compare | `NSNumber` | `allowGalleryUpload` | Provider init false |
+| allowNewEnroll | field | boolean compare | `NSNumber` | `allowNewEnroll` | Provider init false |
+| showInstructions | field | boolean compare | `NSNumber` | `showInstructions` | Provider init true |
+| showAttribution | field | boolean compare | `NSNumber` | `showAttribution` | Provider init true |
+| useStrictMode | field | boolean compare | `NSNumber` | `useStrictMode` | Provider init false |
+| skipApiSubmission | field | boolean compare | `NSNumber` | `skipApiSubmission` | Provider init false |
+| bypassSelfieCaptureWithFile | field | `assignStringIfChanged` | `NSString*` | `bypassSelfieCaptureWithFile` (URL later) | Nil if empty |
+| userId | `userId` | `assignStringIfChanged` | `NSString*` | `userId` | Generated later if nil |
+| jobId | `jobId` | `assignStringIfChanged` | `NSString*` | `jobId` | Generated later if nil |
+| extraPartnerParams | vector | rebuild NSArray & compare | `NSArray*` | map → `[String:String]` | Empty by default |
+
+Swift root applies final fallbacks:
+```swift
+userId: params.userId ?? generateUserId(),
+jobId: params.jobId ?? generateJobId(),
+autoCapture: AutoCapture(from: params.autoCapture)
+```
+
+### 5.5 Event Flow (Native → JS)
+| Step | Android | iOS |
+|------|---------|-----|
+| Native success | `DocumentVerificationResult` | Delegate `didSucceed` (URLs) |
+| Transform | `result.toWritableMap()` | NSMutableDictionary (no JSON) |
+| Dispatch | `dispatchDirectEvent("onSuccess", map)` | C++ event struct → `eventEmitter->onSuccess` |
+| JS access | `e.nativeEvent.selfie` etc. | Same keys (`selfie`, `documentFrontFile`, `documentBackFile?`, `didSubmitDocumentVerificationJob`) |
+| Error path | Throwable → map | `didError` builds `{ message, code? }` | Identical shape |
+
+Both paths avoid intermediate JSON parsing for performance + type safety.
+
+### 5.6 Performance & Rationale
+* Flat props = granular native setters; avoids large object diffing.
+* Android leverages Compose state diff; iOS uses manual diff to minimize SwiftUI rebuild churn.
+* Single `updateParams` call batches all iOS changes; no thrashing.
 
 
-## iOS: initialize / setCallbackUrl (New Architecture)
+## 6. Initialize / Set Callback URL (iOS)
+<a id="init-ios"></a>
 
 This section documents how the wrapper exposes SmileID iOS SDK static methods to JavaScript and the threading fix that avoids a Main Thread Checker crash.
 
-### What this adds
+### 6.1 What this Adds
 - A tiny native module to call `SmileID.initialize(...)` and `SmileID.setCallbackUrl(...)` from JS.
 - Initialization fallbacks: prefer `apiKey + config` → `config only` → `basic` (sandbox flag only).
 - Main-thread dispatch around SDK calls to avoid UI APIs being touched off the main queue.
 
-### Files involved
+### 6.2 Files Involved
 - iOS native module and bridge
   - `rn-wrap/ios/SmileIDModule.h` — RCTBridgeModule interface
   - `rn-wrap/ios/SmileIDModule.mm` — Objective‑C implementation exported as `RCT_EXPORT_MODULE(SmileID)` with two promise methods:
@@ -502,7 +637,7 @@ This section documents how the wrapper exposes SmileID iOS SDK static methods to
 - Example usage
   - `rn-wrap/example/src/App.tsx` — Calls `initialize(...)` once on startup with a sample config
 
-### API (JS)
+### 6.3 API (JS)
 - `initialize(useSandbox: boolean, enableCrashReporting: boolean, config?: SmileConfig, apiKey?: string): Promise<void>`
   - `SmileConfig` expects snake_case keys matching the iOS `Config.CodingKeys`
   - Fallbacks inside native:
@@ -511,7 +646,7 @@ This section documents how the wrapper exposes SmileID iOS SDK static methods to
     3) Else → `SmileID.initialize(useSandbox:)`
 - `setCallbackUrl(url?: string): Promise<void>`
 
-### Main-thread fix (crash prevention)
+### 6.4 Main-thread Fix (Crash Prevention)
 Symptoms observed: Main Thread Checker complained about UI API calls (e.g., `-[UIWindow screen]`) when `initialize(...)` was invoked on a background queue (TurboModule thread).
 
 Fix implemented in `SmileIDBridge.swift`:
@@ -521,11 +656,11 @@ Fix implemented in `SmileIDBridge.swift`:
 
 Why synchronous for initialize? It guarantees the Promise only resolves after the SDK is fully initialized, making downstream usage deterministic and avoiding race conditions.
 
-### Does this use TurboModules?
+### 6.5 TurboModules or Not?
 - Yes, it runs under the New Architecture’s TurboModule manager, but this implementation uses the Objective‑C interop path (no TS codegen spec). You’ll see calls on `com.meta.react.turbomodulemanager.queue` and `ObjCTurboModule` in stack traces.
 - It is not a “codegen TurboModule.” To make it fully codegen-based, add a TypeScript spec for the module, configure CodeGen, and re-implement the module conforming to the generated interface. For most simple bridges, the interop approach is sufficient.
 
-### Build steps (iOS)
+### 6.6 Build Steps (iOS)
 When you add or change native iOS files, reinstall Pods and rebuild:
 
 ```sh
@@ -539,16 +674,17 @@ cd ..
 
 If you see header/module import errors, a clean pod install (with New Architecture enabled) usually resolves them.
 
-### Notes
+### 6.7 Notes
 - Wrapper version is read from `SMILE_ID_VERSION` if the compile-time flag is defined; otherwise it defaults to "unknown". This does not affect functionality.
 - `SmileConfig` must be provided in snake_case; it’s JSON‑encoded on the Objective‑C side and decoded into Swift’s `Config`.
 - Invalid or missing `config` simply falls back to the lighter initialization paths described above.
 
-## Android: initialize / setCallbackUrl (New Architecture)
+## 7. Initialize / Set Callback URL (Android)
+<a id="init-android"></a>
 
 Android mirrors the iOS approach with a Kotlin native module exposing `initialize` and `setCallbackUrl` to JS and ensuring calls execute on the UI thread.
 
-### Files involved
+### 7.1 Files Involved
 - Native module and registration
   - `rn-wrap/android/src/main/java/com/rnwrapperrecipe/SmileIDModule.kt` — Kotlin module exposing:
     - `initialize(useSandbox: Boolean, enableCrashReporting: Boolean, config: ReadableMap?, apiKey: String?)`
@@ -556,29 +692,30 @@ Android mirrors the iOS approach with a Kotlin native module exposing `initializ
     Both methods resolve a Promise and run on the main thread via `UiThreadUtil.runOnUiThread { ... }`.
   - `rn-wrap/android/src/main/java/com/rnwrapperrecipe/RnWrapperRecipePackage.kt` — Registers `SmileIDModule` in `createNativeModules`.
 
-### API surface (JS)
+### 7.2 API Surface (JS)
 Same as iOS via `src/NativeSmileID.ts`:
 - `initialize(useSandbox: boolean, enableCrashReporting: boolean, config?: SmileConfig, apiKey?: string): Promise<void>`
 - `setCallbackUrl(url?: string): Promise<void>`
 
-### Main-thread handling
+### 7.3 Main-thread Handling
 - `initialize(...)` and `setCallbackUrl(...)` are dispatched onto the Android UI thread using `UiThreadUtil.runOnUiThread` to prevent UI access from background threads.
 
-### Fallbacks and current behavior
+### 7.4 Fallbacks and Current Behavior
 - The module keeps the same fallbacks contract as iOS at the JS layer. The Kotlin implementation currently calls the safe baseline `SmileID.initialize(context, useSandbox)` which is sufficient for Compose flows.
 - If you need to pass `apiKey` and/or a richer `Config` on Android as well, extend `SmileIDModule.initialize` to:
   - Map `ReadableMap` → the SDK’s `Config` (data class)
   - Prefer `initialize(context, apiKey, config, useSandbox, enableCrashReporting, requestTimeout)` if that overload exists in your SDK version
 - This ensures parity with iOS while keeping the current implementation stable and compatible.
 
-### Does this use TurboModules?
+### 7.5 TurboModules or Not?
 - Yes, the Kotlin module runs under the New Architecture’s TurboModule runtime via the Java/Kotlin interop path (not a codegen TurboModule). It’s discoverable through autolinking and the React Gradle plugin.
 
-### Build steps (Android)
+### 7.6 Build Steps (Android)
 - The module is part of the library; autolinking will register the package. Rebuild the Android app after changes to the library.
 - If you run into dependency conflicts (Kotlin or kotlinx-serialization), this template already pins versions in `android/build.gradle` using `resolutionStrategy`.
 
-## Troubleshooting
+## 8. Troubleshooting
+<a id="troubleshooting"></a>
 
 - [Hermes crash: property not configurable / component undefined (iOS)](#ts-hermes)
 - [Module Resolution Error: main could not be resolved](#ts-module-resolve)
@@ -586,6 +723,8 @@ Same as iOS via `src/NativeSmileID.ts`:
 - [Android: View doesn’t resize or re-layout under RN (requestLayout ignored)](#ts-android-requestlayout)
 - [Android: Camera preview shows black (CameraX lifecycle/layout under RN)](#ts-android-camerax-black)
 - [Windows Common Issues](#ts-windows-common-issues)
+
+Note: Individual troubleshooting entries use descriptive anchors instead of numeric labels to make deep-linking and search simpler. If you prefer numbered issue references (e.g., 8.1, 8.2), convert each heading below accordingly.
 
 <a id="ts-hermes"></a>
 ### Hermes crash: `TypeError: property is not configurable` and `Cannot read property 'DocumentVerificationView' of undefined`
@@ -913,7 +1052,8 @@ ext {
 
 This avoids libc++ linker issues observed with NDK r27 on Windows.
 
-## Resources
+## 9. Resources
+<a id="resources"></a>
 
 - [Exposing SwiftUI Views to React Native: An Integration Guide](https://www.callstack.com/blog/exposing-swiftui-views-to-react-native-an-integration-guide)
 - [Native Modules](https://reactnative.dev/docs/turbo-native-modules-introduction)
