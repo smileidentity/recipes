@@ -389,6 +389,7 @@ Responsibilities:
 - Lazily instantiate the `UIHostingController` in `layoutSubviews` (first layout pass) and pin it to edges.
 - Expose `onSuccess` / `onError` block properties consumed by the `.mm` glue.
 - Rebuild the `rootView` when props change (`updateParams()`), keeping SwiftUI state in sync without re-creating the hosting controller.
+ - (Optional) Adopt an explicit `intrinsicContentSize` or override `sizeThatFits` if your SwiftUI subtree needs to dictate size upward (not required here because layout is driven from JS/Yoga).
 
 Snippet (trimmed):
 ```swift
@@ -436,6 +437,7 @@ Inside `DocumentVerificationView.mm` the `-updateProps:oldProps:` method:
 - Translates enum cases (e.g. `autoCapture`) to NSString tokens expected by Swift
 - Uses sentinel values (empty string / 0 / nil) to represent “unset” optional props
 - Calls `[provider updateParams]` only if something changed to avoid unnecessary SwiftUI re-renders
+ - (If you introduce expensive props) you can batch related assignments and delay a single `updateParams()` using a microtask / main-thread dispatch for coalescing. Not needed now because prop volume is small.
 
 Event flow (success): Swift delegate → provider `onSuccess(NSDictionary)` → captured block in `.mm` converts dictionary → builds `DocumentVerificationViewEventEmitter::OnSuccess` struct → `eventEmitter->onSuccess(event)` → JS listener prop.
 
@@ -445,6 +447,8 @@ They follow the same pattern with smaller payloads. The SmartSelfie flows build 
 
 Why stringify? The codegen event spec uses a single `result` (string) field; encoding once in Swift avoids duplicate serialization on the JS side.
 
+If you later expand events to structured multi‑field payloads, prefer mirroring the Document Verification pattern (NSDictionary → C++ struct) for zero JSON (de)serialization overhead.
+
 ## 7) Initialization native module (TurboModule interop)
 
 The initialization bridge (`SmileIDModule.h/.mm` + `SmileIDBridge.swift`) is already documented below (see: “SmileID native module: initialize/setCallbackUrl…”). It lives alongside the Fabric views but is independent—nothing in the Fabric components requires initialization until a screen is presented, yet performing it early (app start) avoids first‑screen latency and camera permission timing issues.
@@ -452,6 +456,7 @@ The initialization bridge (`SmileIDModule.h/.mm` + `SmileIDBridge.swift`) is alr
 Key points recap:
 - Always dispatch SDK setup to the main thread (the bridge does this) to satisfy UIKit + potential Sentry calls.
 - Provide fallbacks: `apiKey + config` → `config` → basic init; mirror the same contract on Android for parity.
+ - Set wrapper metadata (`SmileID.setWrapperInfo`) before first screen to surface wrapper versioning in analytics / diagnostics.
 
 ## 8) Naming & collision avoidance
 
@@ -470,6 +475,7 @@ After adding or renaming any of: `.h`, `.mm`, provider Swift file, root SwiftUI 
 3. Re-run the iOS build (`yarn ios` from the example)
 
 If events stop firing, verify `build/generated/ios/RCTThirdPartyComponentsProvider.mm` contains entries for each Fabric component name.
+Also confirm the generated file imports haven’t been orphaned; a missing entry usually means CodeGen didn’t see your TypeScript spec (run `yarn prepare` then reinstall Pods). If the SwiftUI view shows visually but no JS events arrive, re‑check the provider callback wiring in the `.mm` file (the weak self capture + emitter dispatch pattern) against the Callstack article’s recommended lifecycle (ensure no early deallocation).
 
 ## 10) Summary (iOS wrapping pipeline)
 
