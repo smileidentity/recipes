@@ -762,11 +762,11 @@ Android mirrors the iOS approach with a Kotlin native module exposing `initializ
 
 ### 8.1 Files Involved
 - Native module and registration
-  - `rn-wrap/android/src/main/java/com/rnwrapperrecipe/SmileIDModule.kt` — Kotlin module exposing:
-    - `initialize(useSandbox: Boolean, enableCrashReporting: Boolean, config: ReadableMap?, apiKey: String?)`
-    - `setCallbackUrl(url: String?)`
+  - `rn-wrap/android/src/main/java/com/rnwrap/SmileIDModule.kt` — Kotlin module exposing:
+      - `initialize(useSandbox: Boolean, enableCrashReporting: Boolean, config: ReadableMap?, apiKey: String?)`
+      - `setCallbackUrl(url: String?)`
     Both methods resolve a Promise and run on the main thread via `UiThreadUtil.runOnUiThread { ... }`.
-  - `rn-wrap/android/src/main/java/com/rnwrapperrecipe/RnWrapperRecipePackage.kt` — Registers `SmileIDModule` in `createNativeModules`.
+    - `rn-wrap/android/src/main/java/com/rnwrap/RnWrapPackage.kt` — Registers `SmileIDModule` in `createNativeModules`.
 
 ### 8.2 API Surface (JS)
 Same as iOS via `src/NativeSmileID.ts`:
