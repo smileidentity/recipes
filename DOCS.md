@@ -18,10 +18,11 @@ Key sections:
 4. [Android: Wrapping Native SmileID Views](#android-wrapping)
 5. [iOS: Wrapping Native SmileID Views](#ios-wrapping)
 6. [Passing Props and Events](#passing-props)
-7. [Initialize / Set Callback URL (iOS)](#init-ios)
-8. [Initialize / Set Callback URL (Android)](#init-android)
-9. [Troubleshooting](#troubleshooting)
-10. [Resources](#resources)
+7. [Wrapping Summary](#wrapping-summary)
+8. [Initialize / Set Callback URL (iOS)](#init-ios)
+9. [Initialize / Set Callback URL (Android)](#init-android)
+10. [Troubleshooting](#troubleshooting)
+11. [Resources](#resources)
 
 ## 1. Why the Library Approach
 <a id="why-library"></a>
@@ -687,18 +688,49 @@ Both paths avoid intermediate JSON parsing for performance + type safety.
 * Android leverages Compose state diff; iOS uses manual diff to minimize SwiftUI rebuild churn.
 * Single `updateParams` call batches all iOS changes; no thrashing.
 
+## 7 Wrapping Views Summary
+<a id="wrapping-summary"></a>
 
-## 7. Initialize / Set Callback URL (iOS)
+Wrapping a SmileID flow for React Native follows the same playbook every time. Use this section as a checklist while the earlier chapters supply the deep dives.
+
+**Prerequisites**
+- SmileID native SDKs linked and configured (Sections&nbsp;4 and&nbsp;5).
+- Codegen in place and pointing at `src` (Section&nbsp;3.2).
+- Library build steps ready to regenerate artifacts: `yarn prepare`, New Architecture pod install, and a clean Android build (Sections&nbsp;2.1, 5.9).
+
+**Implementation Cheat Sheet**
+1. **Describe the JS surface** – Create `YourViewNativeComponent.ts` with flat props and direct events (`Section 3`).
+2. **Android host** – Add a Compose-backed view extending `SmileIDComposeHostView` plus a matching `SimpleViewManager` (`Section 4`). Keep setter names in sync with codegen.
+3. **iOS host** – Add the trio of files (paired `.h` header + `.mm` implementation for the Fabric subclass, a SwiftUI root, and a Swift provider UIView) mirroring the component name (`Section 5`).
+4. **Rebuild artifacts** – Run `yarn prepare`, reinstall Pods with `RCT_NEW_ARCH_ENABLED=1`, and rebuild Android so codegen refreshes (`Sections 2.1, 5.9`).
+5. **Consume from JS** – Export the component from `src/index.tsx`, update your example app, and verify events/props behave (Sections&nbsp;6.1–6.6).
+
+**Quality Guardrails**
+- Stick to flat prop lists; defaults live natively so RN diffs stay cheap.
+- Keep naming aligned (`codegenNativeComponent` string, manager `getName()`, ObjC class).
+- Use the provided helper utilities (`dispatchDirectEvent`, provider callbacks) so success/error payloads stay identical across platforms.
+- When adding new flows, update tests and example usage to catch regressions early.
+
+**Example: Biometric KYC**
+- Spec: `BiometricKYCViewNativeComponent.ts` (props/events).
+- Android: `BiometricKYCView.kt` + `BiometricKYCViewManager.kt` wrapping `SmileID.biometricKycScreen(...)`.
+- iOS: paired Fabric subclass files `BiometricKYCView.h` (header) and `BiometricKYCView.mm` (implementation), plus `BiometricKYCViewProvider.swift` and `BiometricKYCView.swift` embedding the same SmileID screen.
+- Rebuild (`yarn prepare`, pod install, native rebuilds) and then render `<BiometricKYCView />` from JS.
+
+Treat this as the bird’s-eye view: the numbered sections before and after dive into the why and how for each step.
+
+
+## 8. Initialize / Set Callback URL (iOS)
 <a id="init-ios"></a>
 
 This section documents how the wrapper exposes SmileID iOS SDK static methods to JavaScript and the threading fix that avoids a Main Thread Checker crash.
 
-### 7.1 What this Adds
+### 8.1 What this Adds
 - A tiny native module to call `SmileID.initialize(...)` and `SmileID.setCallbackUrl(...)` from JS.
 - Initialization fallbacks: prefer `apiKey + config` → `config only` → `basic` (sandbox flag only).
 - Main-thread dispatch around SDK calls to avoid UI APIs being touched off the main queue.
 
-### 7.2 Files Involved
+### 8.2 Files Involved
 - iOS native module and bridge
   - `rn-wrap/ios/SmileIDModule.h` — RCTBridgeModule interface
   - `rn-wrap/ios/SmileIDModule.mm` — Objective‑C implementation exported as `RCT_EXPORT_MODULE(SmileID)` with two promise methods:
@@ -713,7 +745,7 @@ This section documents how the wrapper exposes SmileID iOS SDK static methods to
 - Example usage
   - `rn-wrap/example/src/App.tsx` — Calls `initialize(...)` once on startup with a sample config
 
-### 7.3 API (JS)
+### 8.3 API (JS)
 - `initialize(useSandbox: boolean, enableCrashReporting: boolean, config?: SmileConfig, apiKey?: string): Promise<void>`
   - `SmileConfig` expects snake_case keys matching the iOS `Config.CodingKeys`
   - Fallbacks inside native:
@@ -722,7 +754,7 @@ This section documents how the wrapper exposes SmileID iOS SDK static methods to
     3) Else → `SmileID.initialize(useSandbox:)`
 - `setCallbackUrl(url?: string): Promise<void>`
 
-### 7.4 Main-thread Fix (Crash Prevention)
+### 8.4 Main-thread Fix (Crash Prevention)
 Symptoms observed: Main Thread Checker complained about UI API calls (e.g., `-[UIWindow screen]`) when `initialize(...)` was invoked on a background queue (TurboModule thread).
 
 Fix implemented in `SmileIDBridge.swift`:
@@ -732,11 +764,11 @@ Fix implemented in `SmileIDBridge.swift`:
 
 Why synchronous for initialize? It guarantees the Promise only resolves after the SDK is fully initialized, making downstream usage deterministic and avoiding race conditions.
 
-### 7.5 TurboModules or Not?
+### 8.5 TurboModules or Not?
 - Yes, it runs under the New Architecture’s TurboModule manager, but this implementation uses the Objective‑C interop path (no TS codegen spec). You’ll see calls on `com.meta.react.turbomodulemanager.queue` and `ObjCTurboModule` in stack traces.
 - It is not a “codegen TurboModule.” To make it fully codegen-based, add a TypeScript spec for the module, configure CodeGen, and re-implement the module conforming to the generated interface. For most simple bridges, the interop approach is sufficient.
 
-### 7.6 Build Steps (iOS)
+### 8.6 Build Steps (iOS)
 When you add or change native iOS files, reinstall Pods and rebuild:
 
 ```sh
@@ -750,17 +782,17 @@ cd ..
 
 If you see header/module import errors, a clean pod install (with New Architecture enabled) usually resolves them.
 
-### 7.7 Notes
+### 8.7 Notes
 - Wrapper version is read from `SMILE_ID_VERSION` if the compile-time flag is defined; otherwise it defaults to "unknown". This does not affect functionality.
 - `SmileConfig` must be provided in snake_case; it’s JSON‑encoded on the Objective‑C side and decoded into Swift’s `Config`.
 - Invalid or missing `config` simply falls back to the lighter initialization paths described above.
 
-## 8. Initialize / Set Callback URL (Android)
+## 9. Initialize / Set Callback URL (Android)
 <a id="init-android"></a>
 
 Android mirrors the iOS approach with a Kotlin native module exposing `initialize` and `setCallbackUrl` to JS and ensuring calls execute on the UI thread.
 
-### 8.1 Files Involved
+### 9.1 Files Involved
 - Native module and registration
   - `rn-wrap/android/src/main/java/com/rnwrap/SmileIDModule.kt` — Kotlin module exposing:
       - `initialize(useSandbox: Boolean, enableCrashReporting: Boolean, config: ReadableMap?, apiKey: String?)`
@@ -768,29 +800,29 @@ Android mirrors the iOS approach with a Kotlin native module exposing `initializ
     Both methods resolve a Promise and run on the main thread via `UiThreadUtil.runOnUiThread { ... }`.
     - `rn-wrap/android/src/main/java/com/rnwrap/RnWrapPackage.kt` — Registers `SmileIDModule` in `createNativeModules`.
 
-### 8.2 API Surface (JS)
+### 9.2 API Surface (JS)
 Same as iOS via `src/NativeSmileID.ts`:
 - `initialize(useSandbox: boolean, enableCrashReporting: boolean, config?: SmileConfig, apiKey?: string): Promise<void>`
 - `setCallbackUrl(url?: string): Promise<void>`
 
-### 8.3 Main-thread Handling
+### 9.3 Main-thread Handling
 - `initialize(...)` and `setCallbackUrl(...)` are dispatched onto the Android UI thread using `UiThreadUtil.runOnUiThread` to prevent UI access from background threads.
 
-### 8.4 Fallbacks and Current Behavior
+### 9.4 Fallbacks and Current Behavior
 - The module keeps the same fallbacks contract as iOS at the JS layer. The Kotlin implementation currently calls the safe baseline `SmileID.initialize(context, useSandbox)` which is sufficient for Compose flows.
 - If you need to pass `apiKey` and/or a richer `Config` on Android as well, extend `SmileIDModule.initialize` to:
   - Map `ReadableMap` → the SDK’s `Config` (data class)
   - Prefer `initialize(context, apiKey, config, useSandbox, enableCrashReporting, requestTimeout)` if that overload exists in your SDK version
 - This ensures parity with iOS while keeping the current implementation stable and compatible.
 
-### 8.5 TurboModules or Not?
+### 9.5 TurboModules or Not?
 - Yes, the Kotlin module runs under the New Architecture’s TurboModule runtime via the Java/Kotlin interop path (not a codegen TurboModule). It’s discoverable through autolinking and the React Gradle plugin.
 
-### 8.6 Build Steps (Android)
+### 9.6 Build Steps (Android)
 - The module is part of the library; autolinking will register the package. Rebuild the Android app after changes to the library.
 - If you run into dependency conflicts (Kotlin or kotlinx-serialization), this template already pins versions in `android/build.gradle` using `resolutionStrategy`.
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 <a id="troubleshooting"></a>
 
 - [Hermes crash: property not configurable / component undefined (iOS)](#ts-hermes)
@@ -1128,7 +1160,7 @@ ext {
 
 This avoids libc++ linker issues observed with NDK r27 on Windows.
 
-## 10. Resources
+## 11. Resources
 <a id="resources"></a>
 
 - [Exposing SwiftUI Views to React Native: An Integration Guide](https://www.callstack.com/blog/exposing-swiftui-views-to-react-native-an-integration-guide)
