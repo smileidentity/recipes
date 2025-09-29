@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/wangerekaharun/react-native-rn-wrap.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm,cpp,swift}"
-  s.dependency "SmileID", "11.1.0"
+  s.dependency "SmileID", "11.1.1"
   s.private_header_files = "ios/**/*.h"
 
 
