@@ -13,7 +13,6 @@ PODS:
   - hermes-engine (0.78.0):
     - hermes-engine/Pre-built (= 0.78.0)
   - hermes-engine/Pre-built (0.78.0)
-  - lottie-ios (4.5.2)
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -1617,20 +1616,17 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - SmileID (= 11.1.2)
+    - SmileID (= 11.1.3)
     - Yoga
-  - Sentry (8.57.0):
-    - Sentry/Core (= 8.57.0)
-  - Sentry/Core (8.57.0)
-  - SmileID (11.1.2):
-    - SmileIDSDK (= 11.1.2)
-  - SmileIDSDK (11.1.2):
+  - Sentry (8.57.1):
+    - Sentry/Core (= 8.57.1)
+  - Sentry/Core (8.57.1)
+  - SmileID (11.1.3):
+    - SmileIDSDK (= 11.1.3)
+  - SmileIDSDK (11.1.3):
     - FingerprintJS (= 1.6.0)
-    - lottie-ios (= 4.5.2)
-    - Sentry (= 8.57.0)
-    - SmileIDSecurity (= 11.1.2)
+    - Sentry (= 8.57.1)
     - ZIPFoundation (= 0.9.20)
-  - SmileIDSecurity (11.1.2)
   - SocketRocket (0.7.1)
   - Yoga (0.0.0)
   - ZIPFoundation (0.9.20)
@@ -1710,11 +1706,9 @@ DEPENDENCIES:
 SPEC REPOS:
   trunk:
     - FingerprintJS
-    - lottie-ios
     - Sentry
     - SmileID
     - SmileIDSDK
-    - SmileIDSecurity
     - SocketRocket
     - ZIPFoundation
 
@@ -1866,7 +1860,6 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: eb93e2f488219332457c3c4eafd2738ddc7e80b8
   hermes-engine: b417d2b2aee3b89b58e63e23a51e02be91dc876d
-  lottie-ios: 96784afc26ea031d3e2b6cae342a4b8915072489
   RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
   RCTDeprecation: b2eecf2d60216df56bc5e6be5f063826d3c1ee35
   RCTRequired: 78522de7dc73b81f3ed7890d145fa341f5bb32ea
@@ -1926,11 +1919,10 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: a1fb08dfdc7ebc387b2e54cfc9decd283ed821d8
   ReactCodegen: 008c319179d681a6a00966edfc67fda68f9fbb2e
   ReactCommon: 0c097b53f03d6bf166edbcd0915da32f3015dd90
-  RnWrap: 7211a0269706203f82e974fe2afe46900ae55fff
-  Sentry: e1b49e5f49367ff211b25c431a60e2bd83b792aa
-  SmileID: e2b0529f765fd264e6e1201e4fb7d4f75b578532
-  SmileIDSDK: f7d3bc45d1ca4bf79619a102e8ed6bfa58726c0e
-  SmileIDSecurity: 049b6d1c0b00866a5e7885d7d57228e091a58413
+  RnWrap: 78a8cb7c4575478021e3ae46a62310a687724e50
+  Sentry: ea4ca7cd1a46c77dcc8123804ce36d8f5603a841
+  SmileID: ba24cf68edfaecebec15997a1f493427dad21b1c
+  SmileIDSDK: e648d298cf8d9af10292836e4f861aba03eff374
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: afd04ff05ebe0121a00c468a8a3c8080221cb14c
   ZIPFoundation: dfd3d681c4053ff7e2f7350bc4e53b5dba3f5351
